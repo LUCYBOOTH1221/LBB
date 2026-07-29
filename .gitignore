@@ -1,0 +1,16 @@
+# Secrets — the Canvas ICS URL is a bearer credential for your whole schedule
+.env
+
+# Generated documents are yours, not the repo's
+docs/generated/
+
+# Live data snapshots. config.yaml and data/triage.json seed are committed;
+# these are refreshed by scripts and shouldn't create diff noise.
+data/canvas.json
+data/docs.json
+data/groupme-log.md
+
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store

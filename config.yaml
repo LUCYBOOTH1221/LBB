@@ -1,0 +1,191 @@
+# -----------------------------------------------------------------------------
+# LBB — Senior Year Command Center
+# Single source of truth. Everything else reads from this file.
+#
+# Lines marked CONFIRM: were inferred from observed mail traffic on
+# lbb122104@gmail.com and have NOT been verified. Correct them before relying
+# on any routing rule that depends on them.
+# -----------------------------------------------------------------------------
+
+owner:
+  name: Lucy Booth
+  school: Tulane University
+  year: senior
+  term: Fall 2026
+
+# ---------------------------------------------------------------------------
+# ACCOUNTS
+#
+# status: live      = Claude can read it right now via a connector
+#         manual    = no connector exists; data arrives by paste/export/feed
+#         blocked   = connector exists but is not authorized yet
+# ---------------------------------------------------------------------------
+accounts:
+  personal_gmail:
+    address: lbb122104@gmail.com
+    status: live
+    connector: Gmail
+    role: Personal life, shopping, finance, family, job alerts.
+    volume: { messages: 73969, unread: 72517 }   # measured 2026-07-29
+
+  school_outlook:
+    address: lbooth1@tulane.edu           # CONFIRM: seen as a CC target, not verified as the Outlook box
+    status: blocked
+    connector: Microsoft 365
+    role: Classes, registrar, advisor, campus admin.
+    note: >
+      Requires authorizing the Microsoft 365 connector on claude.ai. Grants
+      read-only search over Outlook mail + calendar and Teams messages. There
+      is no write access, so Outlook cleanup must be done with Outlook Rules
+      (see mail/outlook-rules.md), not by the agent.
+
+  work_gmail:
+    address: null                          # CONFIRM: not yet provided
+    status: blocked
+    connector: Gmail
+    role: The marketing job. Second boss.
+    note: >
+      HARD LIMIT: the Gmail connector authorizes exactly one Google account.
+      Personal Gmail currently holds that slot. Two Gmail accounts cannot both
+      be live at once. See docs/two-gmail-problem.md for the three workarounds.
+
+# ---------------------------------------------------------------------------
+# PEOPLE — the allowlist that drives "urgent headlines"
+#
+# Anything from a `priority: high` address skips every filter, stays in the
+# inbox, and surfaces at the top of the dashboard. This list is the single
+# most important thing in the repo: it is what stops a boss email from being
+# buried under 70,000 promos.
+# ---------------------------------------------------------------------------
+people:
+  - handle: betsy-work
+    address: bbiern@sf.wish.org
+    org: Make-A-Wish Greater Bay Area
+    title: CEO
+    priority: high
+    channel: email
+    # CONFIRM: appears to be the non-profit / marketing side. Is this "boss #2"?
+    note: Sends forwarded receipts and vendor coordination; often CCs lbooth1@tulane.edu.
+
+  - handle: betsy-personal
+    address: betsyb1115@yahoo.com
+    priority: high
+    channel: email
+    # CONFIRM: same first name as betsy-work, but mails the Booth family
+    # (tedbooth7@hotmail.com, charlieb2404@icloud.com). Same person wearing two
+    # hats, or two different people? This changes whether her mail is "work".
+    note: Family thread traffic. Relationship unverified.
+
+  - handle: boss-tooling
+    address: null                          # CONFIRM: not yet provided
+    priority: high
+    channel: groupme
+    note: The GroupMe boss. No connector exists; see canvas-and-groupme.md.
+
+# Domains that are always real, never filtered, regardless of sender.
+never_filter_domains:
+  - tulane.edu
+  - american.edu
+  - sf.wish.org
+
+# ---------------------------------------------------------------------------
+# CLASSES — fill in once Fall 2026 registration is final.
+# `tag` becomes the Gmail label suffix and the dashboard column.
+# ---------------------------------------------------------------------------
+classes: []
+  # - tag: POLS-4010
+  #   name: Senior Seminar in Political Science
+  #   canvas_course_id: null
+  #   meets: [Tue, Thu]
+  #   professor: null
+
+# ---------------------------------------------------------------------------
+# NOISE — the actual top offenders, measured from a 90-day sample.
+# Ranked by observed volume. This ordering drives mail/filters.md.
+# ---------------------------------------------------------------------------
+noise:
+  # #1 by a wide margin. Discover fires one alert per transaction, including
+  # $3.00 subway taps and $4.75 coffees. This single sender plausibly accounts
+  # for a five-figure share of the 72k unread.
+  transaction_alerts:
+    - discover@services.discover.com
+
+  # Uber sends TWO emails per trip: a "charge summary" and then a near-identical
+  # "thanks for riding" receipt ~11 hours later. Doubling the noise for one ride.
+  duplicate_receipts:
+    - noreply@uber.com
+
+  retail:
+    - customerservice@loveshackfancy.com
+    - concierge@ebdenim.com
+    - contact@dollskill.com
+    - hello@cultgaia.com
+    - support@frankiesbikinis.com
+    - reminder@emails.gilt.com
+    - hello@mail.olivela.com
+    - info@260samplesale.com
+    - thredup@email.thredup.com
+    - email@e.therealreal.com
+    - news@mail.grailed.com
+    - info@send.jadedldn.com
+    - customerservice@splits59.com
+    - newsletter@email.barenecessities.com
+    - hi@kule.com
+    - jcrewfactory@mail.jcrew.com
+    - email@email.savagex.com
+    - customercare@shopdoen.com
+    - no-reply@golausa.com
+    - photo@mystore.cvs.com
+    - funhogs@na.patagonia.com
+    - contact@laseraway.com
+    - hello@eaze.com
+    - uber@uber.com          # Uber Eats marketing, distinct from receipts
+    - ubereats@uber.com
+
+  newsletters:
+    - hello@interestingfacts.com
+    - newyorker@newsletter.newyorker.com
+    - info@nl.mail.washingtonpost.com
+    - newsdigest@insideapple.apple.com
+    - vogue@eml.condenast.com
+    - newsletters-noreply@linkedin.com
+    - andoverbookstore@shelf-awareness.com
+    - matt@ststephensorinda.org
+    - info@news.thefork.fr
+    - hello@loyalsnap.com
+    - newsletter@lifecycle.quizlet.com
+    - hello@mail.grammarly.com
+
+  job_alerts:
+    - jobalerts-noreply@linkedin.com
+    - linkedin@em.linkedin.com
+    - no-reply@idealist.org
+
+  # Genuinely useful but not urgent — route to a label, keep out of the inbox.
+  transactional:
+    - no_reply@email.apple.com
+    - noreply-accounts@google.com
+    - no-reply@accounts.google.com
+    - support@wispr.ai
+    - hello@mail.wispr.ai
+
+# ---------------------------------------------------------------------------
+# LABEL TAXONOMY
+# The five labels below already exist in Gmail with 0 messages applied —
+# a scaffold someone built and never used. These IDs are real.
+# ---------------------------------------------------------------------------
+labels:
+  existing:
+    - { id: Label_7, name: "Important & Action Needed", color: "#fb4c2f" }
+    - { id: Label_3, name: "Internships & Career",      color: "#1c4587" }
+    - { id: Label_4, name: "Finance & Banking",         color: "#16a765" }
+    - { id: Label_5, name: "Newsletters & News",        color: "#8e63ce" }
+    - { id: Label_6, name: "Shopping & Promos",         color: "#e07798" }
+    - { id: Label_1, name: "Notes" }
+    - { id: Label_2, name: "tenacity" }
+  proposed:
+    - "School/Canvas"
+    - "School/Registrar"
+    - "Work/Make-A-Wish"
+    - "Work/Marketing"
+    - "Receipts/Transactions"

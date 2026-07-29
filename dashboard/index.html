@@ -1,0 +1,291 @@
+<title>LBB &mdash; Senior Year Command Center</title>
+<style>
+:root{
+  --ground:#FBFAF7; --raise:#FFFFFF; --ink:#171A12; --ink-2:#4A4F42; --muted:#6E7266;
+  --line:#E3E2D8; --accent:#3D6B4C; --sky:#40708A;
+  --critical:#A03E2C; --warn:#A8762A; --calm:#3D6B4C;
+  --critical-bg:#F6E7E2; --warn-bg:#F7EEDC; --calm-bg:#E4EDE5;
+  --shadow:0 1px 2px rgba(23,26,18,.05),0 1px 8px rgba(23,26,18,.04);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --ground:#12140F; --raise:#1A1D16; --ink:#E7E9E0; --ink-2:#B3B8A9; --muted:#878C7C;
+    --line:#2A2E24; --accent:#8FBF9C; --sky:#7FADC4;
+    --critical:#E08A74; --warn:#D9AC63; --calm:#8FBF9C;
+    --critical-bg:#2E1F1A; --warn-bg:#2C2418; --calm-bg:#1C271F;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 1px 8px rgba(0,0,0,.2);
+  }
+}
+:root[data-theme="light"]{
+  --ground:#FBFAF7; --raise:#FFFFFF; --ink:#171A12; --ink-2:#4A4F42; --muted:#6E7266;
+  --line:#E3E2D8; --accent:#3D6B4C; --sky:#40708A;
+  --critical:#A03E2C; --warn:#A8762A; --calm:#3D6B4C;
+  --critical-bg:#F6E7E2; --warn-bg:#F7EEDC; --calm-bg:#E4EDE5;
+  --shadow:0 1px 2px rgba(23,26,18,.05),0 1px 8px rgba(23,26,18,.04);
+}
+:root[data-theme="dark"]{
+  --ground:#12140F; --raise:#1A1D16; --ink:#E7E9E0; --ink-2:#B3B8A9; --muted:#878C7C;
+  --line:#2A2E24; --accent:#8FBF9C; --sky:#7FADC4;
+  --critical:#E08A74; --warn:#D9AC63; --calm:#8FBF9C;
+  --critical-bg:#2E1F1A; --warn-bg:#2C2418; --calm-bg:#1C271F;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 1px 8px rgba(0,0,0,.2);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px; margin:0 auto; padding:40px 24px 72px;
+  display:flex; flex-direction:column; gap:32px}
+
+/* header */
+.masthead{display:flex; flex-wrap:wrap; gap:24px; align-items:flex-end;
+  justify-content:space-between; padding-bottom:24px; border-bottom:2px solid var(--ink)}
+.masthead h1{
+  font-family:ui-serif,"Iowan Old Style",Georgia,serif;
+  font-size:clamp(28px,4vw,40px); font-weight:600; margin:0; letter-spacing:-.015em;
+  text-wrap:balance;
+}
+.masthead .sub{color:var(--muted); font-size:14px; margin:6px 0 0}
+.stamp{font-family:ui-monospace,Menlo,monospace; font-size:12px;
+  color:var(--muted); text-align:right; font-variant-numeric:tabular-nums}
+
+/* unread meter */
+.meter{background:var(--raise); border:1px solid var(--line); border-radius:8px;
+  padding:18px 20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:12px}
+.meter-top{display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap}
+.meter-label{font-size:11px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--muted); font-weight:600}
+.meter-nums{font-family:ui-monospace,Menlo,monospace; font-variant-numeric:tabular-nums;
+  font-size:13px; color:var(--ink-2)}
+.meter-nums b{color:var(--critical); font-size:20px; font-weight:600}
+.bar{height:10px; border-radius:5px; background:var(--calm-bg); overflow:hidden; display:flex}
+.bar span{display:block; background:var(--critical); height:100%}
+.meter-foot{font-size:13px; color:var(--muted); margin:0}
+
+/* sections */
+section{background:var(--raise); border:1px solid var(--line); border-radius:8px;
+  box-shadow:var(--shadow); overflow:hidden}
+.sec-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+  padding:16px 20px; border-bottom:1px solid var(--line)}
+.sec-head h2{font-family:ui-serif,"Iowan Old Style",Georgia,serif;
+  font-size:18px; font-weight:600; margin:0; letter-spacing:-.01em}
+.sec-head .count{font-family:ui-monospace,Menlo,monospace; font-size:12px;
+  color:var(--muted); font-variant-numeric:tabular-nums}
+.sec-note{padding:0 20px; margin:12px 0 0; font-size:13px; color:var(--muted)}
+
+/* align-items:start keeps a short/empty panel at its natural height
+   instead of stretching it into a void beside a taller sibling */
+.split{display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start}
+@media (max-width:760px){ .split{grid-template-columns:1fr} }
+
+/* rows */
+.rows{list-style:none; margin:0; padding:0}
+.row{display:flex; gap:16px; justify-content:space-between; align-items:flex-start;
+  padding:14px 20px; border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none}
+.row.is-unread{border-left:3px solid var(--critical); padding-left:17px}
+.row-main{min-width:0; display:flex; flex-direction:column; gap:3px}
+.row-who{display:flex; gap:8px; align-items:baseline; flex-wrap:wrap}
+.who{font-weight:600; font-size:13px}
+.org,.date{font-size:12px; color:var(--muted)}
+.date{font-family:ui-monospace,Menlo,monospace; font-variant-numeric:tabular-nums}
+.row-subject{color:var(--ink); text-decoration:none; font-size:15px;
+  border-bottom:1px solid transparent}
+a.row-subject:hover,a.row-subject:focus-visible{border-bottom-color:var(--accent); color:var(--accent)}
+.row-why{margin:2px 0 0; font-size:12.5px; color:var(--muted); font-style:italic}
+.row-meta{flex-shrink:0; text-align:right}
+.row-meta time{font-family:ui-monospace,Menlo,monospace; font-size:12px;
+  color:var(--muted); font-variant-numeric:tabular-nums}
+
+.tag{font-family:ui-monospace,Menlo,monospace; font-size:11px; font-weight:600;
+  color:var(--sky); letter-spacing:.02em}
+.pill{display:inline-block; padding:2px 9px; border-radius:99px; font-size:11.5px;
+  font-weight:600; white-space:nowrap}
+.pill-critical{background:var(--critical-bg); color:var(--critical)}
+.pill-warn{background:var(--warn-bg); color:var(--warn)}
+.pill-calm{background:var(--calm-bg); color:var(--calm)}
+
+/* empty states */
+.empty{padding:28px 20px; text-align:center}
+.empty p{margin:0; color:var(--ink-2); font-size:14px}
+.empty-hint{margin-top:6px !important; font-size:12.5px !important; color:var(--muted) !important;
+  font-family:ui-monospace,Menlo,monospace}
+
+/* channel chips */
+.chips{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; padding:16px 20px}
+/* two rows: [dot | name | state] over [address spanning the text columns],
+   so a long name never has to wrap against the status label.
+   Every cell is placed explicitly -- auto-placement gets this wrong. */
+.chip{display:grid; grid-template-columns:auto 1fr auto; gap:2px 9px;
+  align-items:center; padding:10px 12px; text-align:left;
+  border:1px solid var(--line); border-radius:6px; background:var(--ground)}
+.dot{grid-area:1/1; width:8px; height:8px; border-radius:50%}
+.chip-name{grid-area:1/2; font-size:13px; font-weight:600;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.chip-state{grid-area:1/3; font-size:11px; font-weight:600; white-space:nowrap}
+.chip-addr{grid-area:2/2/3/4; font-size:11.5px; color:var(--muted);
+  font-family:ui-monospace,Menlo,monospace;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.chip-calm .dot{background:var(--calm)} .chip-calm .chip-state{color:var(--calm)}
+.chip-warn .dot{background:var(--warn)} .chip-warn .chip-state{color:var(--warn)}
+.chip-critical .dot{background:var(--critical)} .chip-critical .chip-state{color:var(--critical)}
+
+footer{color:var(--muted); font-size:12.5px; text-align:center; line-height:1.7}
+footer code{font-family:ui-monospace,Menlo,monospace; font-size:12px}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:2px}
+@media (prefers-reduced-motion:reduce){ *{transition:none !important; animation:none !important} }
+</style>
+<div class="wrap">
+
+  <header class="masthead">
+    <div>
+      <h1>Senior Year Command Center</h1>
+      <p class="sub">Lucy Booth &middot; Tulane University &middot; Fall 2026</p>
+    </div>
+    <div class="stamp">built 2026-07-29 20:59 UTC<br>source: seed</div>
+  </header>
+
+  <div class="meter">
+  <div class="meter-top">
+    <span class="meter-label">Personal inbox &mdash; unread share</span>
+    <span class="meter-nums"><b>98.0%</b> &nbsp;72,517 unread of 73,969</span>
+  </div>
+  <div class="bar"><span style="width:98.0%"></span></div>
+  <p class="meter-foot">341 messages sent, all time &mdash; roughly one reply for every 216 received. Import <code>mail/filters.xml</code> to cut this down.</p>
+</div>
+
+  <section>
+    <div class="sec-head">
+      <h2>Waiting on you</h2>
+      <span class="count">5</span>
+    </div>
+    <ul class="rows"><li class="row is-unread">
+  <div class="row-main">
+    <div class="row-who"><span class="who">Betsy Biern</span><span class="org">Make-A-Wish Greater Bay Area</span></div>
+    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f9ba134f22448a" target="_blank" rel="noopener">Chez panisse</a>
+    <p class="row-why">VIP sender, unread, addressed to you directly</p>
+  </div>
+  <div class="row-meta"><time>3d ago</time></div>
+</li><li class="row is-unread">
+  <div class="row-main">
+    <div class="row-who"><span class="who">Betsy Biern</span><span class="org">Make-A-Wish Greater Bay Area</span></div>
+    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f856d560cf77e6" target="_blank" rel="noopener">FW: Lula Cellars Order Receipt - for Aurora&#x27;s family</a>
+    <p class="row-why">VIP sender, unread, CCs your Tulane address</p>
+  </div>
+  <div class="row-meta"><time>8d ago</time></div>
+</li><li class="row is-unread">
+  <div class="row-main">
+    <div class="row-who"><span class="who">Betsy Biern</span><span class="org">Make-A-Wish Greater Bay Area</span></div>
+    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f5c63e3326396d" target="_blank" rel="noopener">FW: Lula Cellars Order Receipt - for AURORA&#x27;s family</a>
+    <p class="row-why">VIP sender, unread, contains an explicit instruction</p>
+  </div>
+  <div class="row-meta"><time>16d ago</time></div>
+</li><li class="row is-unread">
+  <div class="row-main">
+    <div class="row-who"><span class="who">Betsy</span></div>
+    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f9ba0460ddd0e9" target="_blank" rel="noopener">Fw: Your reservation at Café Chez Panisse is confirmed</a>
+    <p class="row-why">VIP sender, unread</p>
+  </div>
+  <div class="row-meta"><time>3d ago</time></div>
+</li><li class="row">
+  <div class="row-main">
+    <div class="row-who"><span class="who">Betsy</span></div>
+    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f85b1174d149b5" target="_blank" rel="noopener">Fw: The conversation Q&amp;A is in session</a>
+    <p class="row-why">Contains a direct ask: &quot;Ask dad for his login for master class&quot;</p>
+  </div>
+  <div class="row-meta"><time>8d ago</time></div>
+</li></ul>
+  </section>
+
+  <div class="split">
+    <section>
+      <div class="sec-head">
+        <h2>Due soon</h2>
+        <span class="count">0</span>
+      </div>
+      <div class="empty"><p>No Canvas feed connected.</p><p class="empty-hint">Add CANVAS_ICS_URL to .env, then run scripts/fetch_canvas.py</p></div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <h2>Keep an eye on</h2>
+        <span class="count">3</span>
+      </div>
+      <ul class="rows"><li class="row is-unread">
+  <div class="row-main">
+    <div class="row-who"><span class="who">AU Washington Semester Program</span></div>
+    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19fa96430c2e725d" target="_blank" rel="noopener">This week: DC Employer + WSP Info Sessions!</a>
+    <p class="row-why">Protected domain, addressed &quot;Dear Lucy&quot;, time-boxed events</p>
+  </div>
+  <div class="row-meta"><time>1d ago</time></div>
+</li><li class="row is-unread">
+  <div class="row-main">
+    <div class="row-who"><span class="who">AU Washington Semester Program</span></div>
+    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f8a44c984e4df8" target="_blank" rel="noopener">Upcoming Events: Careers in Congress info session + more!</a>
+    <p class="row-why">Protected domain, event deadlines</p>
+  </div>
+  <div class="row-meta"><time>7d ago</time></div>
+</li><li class="row">
+  <div class="row-main">
+    <div class="row-who"><span class="who">Romney Pilates</span></div>
+    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f6770134c3a90a" target="_blank" rel="noopener">Important Update: Megaformer Classes 7/15</a>
+    <p class="row-why">Human sender, schedule change</p>
+  </div>
+  <div class="row-meta"><time>14d ago</time></div>
+</li></ul>
+    </section>
+  </div>
+
+  <section>
+    <div class="sec-head">
+      <h2>Documents</h2>
+      <span class="count">0</span>
+    </div>
+    <div class="empty"><p>No documents generated yet.</p><p class="empty-hint">Ask the agent to draft from a template in docs/templates/</p></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Channels</h2>
+      <span class="count">1 of 5 live</span>
+    </div>
+    <div class="chips"><div class="chip chip-calm">
+  <span class="dot"></span>
+  <span class="chip-name">Personal</span>
+  <span class="chip-state">Connected</span>
+  <span class="chip-addr">lbb122104@gmail.com</span>
+</div><div class="chip chip-warn">
+  <span class="dot"></span>
+  <span class="chip-name">School</span>
+  <span class="chip-state">Not authorized</span>
+  <span class="chip-addr">lbooth1@tulane.edu</span>
+</div><div class="chip chip-warn">
+  <span class="dot"></span>
+  <span class="chip-name">Work</span>
+  <span class="chip-state">Not authorized</span>
+  <span class="chip-addr">not set</span>
+</div><div class="chip chip-critical">
+  <span class="dot"></span>
+  <span class="chip-name">Canvas</span>
+  <span class="chip-state">No connector</span>
+  <span class="chip-addr">ICS feed</span>
+</div><div class="chip chip-critical">
+  <span class="dot"></span>
+  <span class="chip-name">GroupMe</span>
+  <span class="chip-state">No connector</span>
+  <span class="chip-addr">paste-in</span>
+</div></div>
+    <p class="sec-note" style="padding-bottom:16px">Inactive channels stay visible on purpose &mdash; this panel never
+    shows data it doesn't have. See <code>docs/two-gmail-problem.md</code> and <code>docs/canvas-and-groupme.md</code>.</p>
+  </section>
+
+  <footer>
+    Rebuild with <code>python3 scripts/build_dashboard.py</code><br>
+    Reads <code>config.yaml</code>, <code>data/triage.json</code>, <code>data/canvas.json</code>, <code>data/docs.json</code>
+  </footer>
+
+</div>
