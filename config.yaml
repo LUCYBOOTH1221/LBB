@@ -150,9 +150,10 @@ workspaces:
     accent_alt: "#6E8BE0"
     match: [nonsibi.vc]
     links:
-      - { label: "Non Sibi",         url: "https://nonsibi.vc/" }
-      - { label: "Content Calendar", url: "", todo: true }
-      - { label: "LinkedIn",         url: "https://www.linkedin.com/feed/" }
+      - { label: "Marketing Dashboard", url: "https://nonsibi-dashboard.netlify.app/" }
+      - { label: "Content Calendar",    url: "https://docs.google.com/spreadsheets/d/1hzvFhNAaScWUB7aQnr3-9juucc5L4ZPwQPXdUGSdElE/edit" }
+      - { label: "Non Sibi",            url: "https://nonsibi.vc/" }
+      - { label: "LinkedIn",            url: "https://www.linkedin.com/feed/" }
     panels: [calendar]
 
   - id: personal
@@ -163,6 +164,55 @@ workspaces:
     default: true
     match: []
     panels: []
+
+# ---------------------------------------------------------------------------
+# INTEGRATIONS — external systems the dashboard reads from.
+#
+# NO KEYS IN THIS FILE. It is committed. Secrets go in .env, which is not.
+# ---------------------------------------------------------------------------
+integrations:
+  supabase:
+    url: https://mlrfmahsmjwtcozlxlyo.supabase.co
+    table: calendar
+    # Two different keys, two very different risk profiles:
+    #
+    #   service_role  full read/write, BYPASSES Row Level Security.
+    #                 Belongs only in Apps Script Properties, where it already
+    #                 is. Never in this repo, never in a browser, never in a
+    #                 page anyone else can view-source.
+    #
+    #   anon          the publishable key, meant to be shipped to browsers.
+    #                 Safe there ONLY if RLS is enabled on the calendar table
+    #                 with a select-only policy.
+    #
+    # scripts/fetch_nonsibi.py runs server-side and will use either, preferring
+    # SUPABASE_ANON_KEY. The browser path uses the anon key exclusively.
+    env_key_server: SUPABASE_ANON_KEY      # falls back to SUPABASE_SERVICE_KEY
+    env_key_browser: SUPABASE_ANON_KEY
+    source_of_truth: >
+      A Google Sheet, synced to Supabase by an Apps Script (AllInOne.gs) on
+      every edit plus a 15-minute backstop. Supabase is a read replica —
+      edit the Sheet, never the table.
+
+  netlify:
+    dashboard: https://nonsibi-dashboard.netlify.app/
+
+  sheet:
+    id: 1hzvFhNAaScWUB7aQnr3-9juucc5L4ZPwQPXdUGSdElE
+    tab: Calendar
+
+# ---------------------------------------------------------------------------
+# NON SIBI TEAM — mirrors the TEAM map in AllInOne.gs. The Apps Script resolves
+# "Posting from" cells against this to decide who gets nudged.
+# ---------------------------------------------------------------------------
+team:
+  nonsibi:
+    - { name: Kent,    email: kent@nonsibi.vc, role: boss }
+    - { name: Camille, email: camille@nonsibi.vc }
+    - { name: Andrea,  email: andrea@nonsibi.vc }
+    - { name: Auny,    email: auny@nonsibi.vc }
+    - { name: Maria,   email: maria@nonsibi.vc }
+    - { name: Lucy,    email: lucy@nonsibi.vc, role: owner }
 
 # ---------------------------------------------------------------------------
 # BRAND — Tulane's official colors, used to accent the Tulane section.

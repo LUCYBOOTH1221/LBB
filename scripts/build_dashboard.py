@@ -21,6 +21,7 @@ import html
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote, urlencode
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
@@ -140,8 +141,26 @@ def links_bar(links: list[dict]) -> str:
     return f'<div class="qlinks">{"".join(out)}</div>' if out else ""
 
 
+def compose_url(item: dict) -> str:
+    """Gmail compose, prefilled as a reply to this sender.
+
+    Gmail has no public deep link that opens a reply *inside* an existing
+    thread, so this opens a fresh compose with Re: and the recipient filled
+    in. For a genuine threaded draft, ask the agent -- it writes through the
+    Gmail API and the draft appears attached to the real thread.
+    """
+    subject = item.get("subject") or ""
+    if not subject.lower().startswith("re:"):
+        subject = f"Re: {subject}"
+    params = urlencode(
+        {"view": "cm", "fs": "1", "to": item.get("from") or "", "su": subject},
+        quote_via=quote,
+    )
+    return f"https://mail.google.com/mail/?{params}"
+
+
 def mail_rows(items: list[dict]) -> str:
-    """Each row carries Seen / Replied toggles, persisted in the browser."""
+    """Each row carries Seen / Replied toggles plus a Draft action."""
     if not items:
         return empty("Nothing waiting here.")
     out = []
@@ -150,6 +169,19 @@ def mail_rows(items: list[dict]) -> str:
         unread = " is-unread" if it.get("unread") else ""
         org = f'<span class="org">{e(it["org"])}</span>' if it.get("org") else ""
         why = f'<p class="row-why">{e(it["reason"])}</p>' if it.get("reason") else ""
+
+        # A draft the agent already created wins over opening a blank compose.
+        if it.get("draft_id"):
+            draft = (
+                f'<a class="act act-draft has-draft" target="_blank" rel="noopener" '
+                f'href="https://mail.google.com/mail/u/0/#drafts/{e(it["draft_id"])}">Draft ready</a>'
+            )
+        else:
+            draft = (
+                f'<a class="act act-draft" target="_blank" rel="noopener" '
+                f'href="{e(compose_url(it))}" data-act="draft">Draft</a>'
+            )
+
         out.append(
             f"""<li class="row{unread}" data-id="{tid}">
   <div class="row-main">
@@ -161,6 +193,7 @@ def mail_rows(items: list[dict]) -> str:
     <time>{e(ago(it.get('received', '')))}</time>
     <div class="acts">
       <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      {draft}
       <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
     </div>
   </div>
@@ -242,26 +275,41 @@ def groupme_panel(log: list[dict]) -> str:
 
 
 def calendar_panel(entries: list[dict]) -> str:
+    """Non Sibi content pipeline, mirroring the sheet's own definition of done:
+    a post counts as live only with a real LinkedIn link AND a Live status."""
     if not entries:
         return panel(
-            "Content calendar",
-            empty("Not connected yet.", "Add the calendar URL to workspaces.nonsibi.links"),
+            "Content pipeline",
+            empty("No Supabase data yet.", "SUPABASE_ANON_KEY in .env, then scripts/fetch_nonsibi.py"),
             "0",
         )
     rows = []
-    for c in entries[:8]:
-        label, sev = until(c.get("date", ""))
+    for c in entries[:10]:
+        if c.get("live"):
+            label, sev = "live", "calm"
+        else:
+            label, sev = until(c.get("date", ""))
+            if not label:
+                label, sev = c.get("status", "not started"), "warn"
+        owner = f'<span class="org">{e(c["owner"])}</span>' if c.get("owner") else ""
+        title = e(c.get("title", ""))
+        subject = (
+            f'<a class="row-subject" href="{e(c["link"])}" target="_blank" rel="noopener">{title}</a>'
+            if c.get("link")
+            else f'<span class="row-subject">{title}</span>'
+        )
         rows.append(
             f"""<li class="row row-compact">
   <div class="row-main">
     <div class="row-who"><span class="date">{e(c.get('date', '')[:10])}</span>
-      <span class="tag">{e(c.get('channel', ''))}</span></div>
-    <span class="row-subject">{e(c.get('title', ''))}</span>
+      <span class="tag">{e(c.get('channel', ''))}</span>{owner}</div>
+    {subject}
   </div>
   <div class="row-side"><span class="pill pill-{sev}">{e(label)}</span></div>
 </li>"""
         )
-    return panel("Content calendar", f'<ul class="rows">{"".join(rows)}</ul>', str(len(entries)))
+    pending = sum(1 for c in entries if not c.get("live"))
+    return panel("Content pipeline", f'<ul class="rows">{"".join(rows)}</ul>', f"{pending} open")
 
 
 STATUS_COPY = {
@@ -427,6 +475,11 @@ a.row-subject:hover,a.row-subject:focus-visible{color:var(--tone); border-bottom
 .act-seen[aria-pressed="true"]{background:var(--sunk); color:var(--ink-2)}
 .act-replied[aria-pressed="true"]{background:var(--calm-bg); color:var(--calm)}
 .act[aria-pressed="true"]::before{content:"\\2713\\00a0"}
+a.act{text-decoration:none; display:inline-flex; align-items:center}
+.act-draft{color:var(--tone); border-color:color-mix(in srgb,var(--tone) 35%,var(--line))}
+.act-draft:hover{background:var(--tone-soft); border-color:var(--tone)}
+.act-draft.has-draft{background:var(--tone-soft); border-color:var(--tone); font-weight:700}
+.act-draft.has-draft::before{content:"\\2709\\00a0"}
 .row.done-seen{background:var(--sunk)}
 .row.done-seen .who{color:var(--muted); font-weight:500}
 .row.done-seen .row-subject{color:var(--muted)}
@@ -686,7 +739,11 @@ JS = """
     fNote.value = ev ? (ev.note || '') : '';
     var ro = !!(ev && ev.readonly);
     fDelete.hidden = !ev || ro;
-    fHint.textContent = ro ? 'From Canvas — edit it in Canvas, not here.' : '';
+    fHint.textContent = ro
+      ? (ev.id && ev.id.indexOf('nonsibi:') === 0
+          ? 'From the Non Sibi content sheet — edit it there.'
+          : 'From Canvas — edit it in Canvas, not here.')
+      : '';
     [fTitle, fLayer, fDate, fTime, fNote].forEach(function (el) { el.disabled = ro; });
     form.querySelector('.btn-primary').disabled = ro;
     if (!ro) fTitle.focus();
@@ -772,7 +829,8 @@ JS = """
 """
 
 
-def calendar_section(spaces: list[dict], canvas_events: list[dict]) -> str:
+def calendar_section(spaces: list[dict], canvas_events: list[dict],
+                     content_items: list[dict]) -> str:
     """Month grid with one toggleable, editable layer per workspace.
 
     Layer definitions and Canvas seed events are handed to the browser as JSON
@@ -793,6 +851,20 @@ def calendar_section(spaces: list[dict], canvas_events: list[dict]) -> str:
         }
         for i, ev in enumerate(canvas_events)
         if (ev.get("due") or "")[:10]
+    ]
+    # Non Sibi content posts ride the royal-blue layer, also read-only: the
+    # Google Sheet owns them, so editing a copy here would only drift.
+    seed += [
+        {
+            "id": c.get("id") or f"nonsibi:{i}",
+            "title": c.get("title", ""),
+            "date": (c.get("date") or "")[:10],
+            "time": "",
+            "layer": "nonsibi",
+            "readonly": True,
+        }
+        for i, c in enumerate(content_items)
+        if (c.get("date") or "")[:10]
     ]
 
     toggles = "".join(
@@ -835,8 +907,9 @@ def calendar_section(spaces: list[dict], canvas_events: list[dict]) -> str:
     </form>
 
     <div class="cal-grid" id="cal-grid"></div>
-    <p class="sec-note">Events you add live in this browser. Canvas assignments appear on the
-    Tulane layer automatically and can't be edited here &mdash; change those in Canvas.</p>
+    <p class="sec-note">Events you add live in this browser. Canvas assignments and Non Sibi
+    content posts are pulled in read-only &mdash; change those in Canvas and the content sheet,
+    which stay the source of truth.</p>
   </section>
   <script type="application/json" id="cal-layers">{json.dumps(layers)}</script>
   <script type="application/json" id="cal-seed">{json.dumps(seed)}</script>"""
@@ -931,7 +1004,7 @@ def build() -> str:
 
   {meter}
 
-  {calendar_section(spaces, canvas.get("events", []))}
+  {calendar_section(spaces, canvas.get("events", []), content.get("items", []))}
 
   {"".join(sections)}
 

@@ -132,6 +132,11 @@ a.row-subject:hover,a.row-subject:focus-visible{color:var(--tone); border-bottom
 .act-seen[aria-pressed="true"]{background:var(--sunk); color:var(--ink-2)}
 .act-replied[aria-pressed="true"]{background:var(--calm-bg); color:var(--calm)}
 .act[aria-pressed="true"]::before{content:"\2713\00a0"}
+a.act{text-decoration:none; display:inline-flex; align-items:center}
+.act-draft{color:var(--tone); border-color:color-mix(in srgb,var(--tone) 35%,var(--line))}
+.act-draft:hover{background:var(--tone-soft); border-color:var(--tone)}
+.act-draft.has-draft{background:var(--tone-soft); border-color:var(--tone); font-weight:700}
+.act-draft.has-draft::before{content:"\2709\00a0"}
 .row.done-seen{background:var(--sunk)}
 .row.done-seen .who{color:var(--muted); font-weight:500}
 .row.done-seen .row-subject{color:var(--muted)}
@@ -250,7 +255,7 @@ footer code{font-family:ui-monospace,Menlo,monospace; font-size:11px}
       <h1>Senior Year Command Center</h1>
       <p class="sub">Lucy Booth &middot; Tulane University &middot; Fall 2026</p>
     </div>
-    <div class="stamp">built 2026-07-30 17:30 UTC<br>source: seed</div>
+    <div class="stamp">built 2026-07-30 17:47 UTC<br>source: seed</div>
   </header>
 
   <div class="meter">
@@ -293,8 +298,9 @@ footer code{font-family:ui-monospace,Menlo,monospace; font-size:11px}
     </form>
 
     <div class="cal-grid" id="cal-grid"></div>
-    <p class="sec-note">Events you add live in this browser. Canvas assignments appear on the
-    Tulane layer automatically and can't be edited here &mdash; change those in Canvas.</p>
+    <p class="sec-note">Events you add live in this browser. Canvas assignments and Non Sibi
+    content posts are pulled in read-only &mdash; change those in Canvas and the content sheet,
+    which stay the source of truth.</p>
   </section>
   <script type="application/json" id="cal-layers">{"tulane": {"name": "Tulane", "color": "#006747"}, "claude": {"name": "Claude", "color": "#6D4AA6"}, "nonsibi": {"name": "Non Sibi", "color": "#2A4FC9"}, "personal": {"name": "Personal", "color": "#B0603A"}}</script>
   <script type="application/json" id="cal-seed">[]</script>
@@ -315,6 +321,7 @@ footer code{font-family:ui-monospace,Menlo,monospace; font-size:11px}
     <time>2d ago</time>
     <div class="acts">
       <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <a class="act act-draft" target="_blank" rel="noopener" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=washsem%40sfmc.american.edu&amp;su=Re%3A%20This%20week%3A%20DC%20Employer%20%2B%20WSP%20Info%20Sessions%21" data-act="draft">Draft</a>
       <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
     </div>
   </div>
@@ -328,6 +335,7 @@ footer code{font-family:ui-monospace,Menlo,monospace; font-size:11px}
     <time>8d ago</time>
     <div class="acts">
       <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <a class="act act-draft" target="_blank" rel="noopener" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=washsem%40sfmc.american.edu&amp;su=Re%3A%20Upcoming%20Events%3A%20Careers%20in%20Congress%20info%20session%20%2B%20more%21" data-act="draft">Draft</a>
       <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
     </div>
   </div>
@@ -358,11 +366,11 @@ footer code{font-family:ui-monospace,Menlo,monospace; font-size:11px}
       <div class="sec-title"><h2>Non Sibi</h2><span class="who-for">lucy@nonsibi.vc</span></div>
       <span class="count">0</span>
     </div>
-    <div class="qlinks"><a class="qlink" href="https://nonsibi.vc/" target="_blank" rel="noopener">Non Sibi</a><span class="qlink is-todo" title="URL not set yet">Content Calendar</span><a class="qlink" href="https://www.linkedin.com/feed/" target="_blank" rel="noopener">LinkedIn</a></div>
+    <div class="qlinks"><a class="qlink" href="https://nonsibi-dashboard.netlify.app/" target="_blank" rel="noopener">Marketing Dashboard</a><a class="qlink" href="https://docs.google.com/spreadsheets/d/1hzvFhNAaScWUB7aQnr3-9juucc5L4ZPwQPXdUGSdElE/edit" target="_blank" rel="noopener">Content Calendar</a><a class="qlink" href="https://nonsibi.vc/" target="_blank" rel="noopener">Non Sibi</a><a class="qlink" href="https://www.linkedin.com/feed/" target="_blank" rel="noopener">LinkedIn</a></div>
     <div class="empty"><p>Nothing waiting here.</p></div>
     <div class="panels"><div class="panel">
-  <div class="panel-head"><h3>Content calendar</h3><span class="count">0</span></div>
-  <div class="empty"><p>Not connected yet.</p><p class="empty-hint">Add the calendar URL to workspaces.nonsibi.links</p></div>
+  <div class="panel-head"><h3>Content pipeline</h3><span class="count">0</span></div>
+  <div class="empty"><p>No Supabase data yet.</p><p class="empty-hint">SUPABASE_ANON_KEY in .env, then scripts/fetch_nonsibi.py</p></div>
 </div></div>
     
   </section><section style="--tone-raw:#B0603A;--tone-alt-raw:#C98A5E">
@@ -381,6 +389,7 @@ footer code{font-family:ui-monospace,Menlo,monospace; font-size:11px}
     <time>4d ago</time>
     <div class="acts">
       <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <a class="act act-draft" target="_blank" rel="noopener" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=bbiern%40sf.wish.org&amp;su=Re%3A%20Chez%20panisse" data-act="draft">Draft</a>
       <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
     </div>
   </div>
@@ -394,6 +403,7 @@ footer code{font-family:ui-monospace,Menlo,monospace; font-size:11px}
     <time>9d ago</time>
     <div class="acts">
       <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <a class="act act-draft" target="_blank" rel="noopener" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=bbiern%40sf.wish.org&amp;su=Re%3A%20FW%3A%20Lula%20Cellars%20Order%20Receipt%20-%20for%20Aurora%27s%20family" data-act="draft">Draft</a>
       <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
     </div>
   </div>
@@ -407,6 +417,7 @@ footer code{font-family:ui-monospace,Menlo,monospace; font-size:11px}
     <time>17d ago</time>
     <div class="acts">
       <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <a class="act act-draft" target="_blank" rel="noopener" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=bbiern%40sf.wish.org&amp;su=Re%3A%20FW%3A%20Lula%20Cellars%20Order%20Receipt%20-%20for%20AURORA%27s%20family" data-act="draft">Draft</a>
       <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
     </div>
   </div>
@@ -420,6 +431,7 @@ footer code{font-family:ui-monospace,Menlo,monospace; font-size:11px}
     <time>4d ago</time>
     <div class="acts">
       <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <a class="act act-draft" target="_blank" rel="noopener" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=betsyb1115%40yahoo.com&amp;su=Re%3A%20Fw%3A%20Your%20reservation%20at%20Caf%C3%A9%20Chez%20Panisse%20is%20confirmed" data-act="draft">Draft</a>
       <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
     </div>
   </div>
@@ -433,6 +445,7 @@ footer code{font-family:ui-monospace,Menlo,monospace; font-size:11px}
     <time>9d ago</time>
     <div class="acts">
       <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <a class="act act-draft" target="_blank" rel="noopener" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=betsyb1115%40yahoo.com&amp;su=Re%3A%20Fw%3A%20The%20conversation%20Q%26A%20is%20in%20session" data-act="draft">Draft</a>
       <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
     </div>
   </div>
@@ -446,6 +459,7 @@ footer code{font-family:ui-monospace,Menlo,monospace; font-size:11px}
     <time>14d ago</time>
     <div class="acts">
       <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <a class="act act-draft" target="_blank" rel="noopener" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=romneypilates%40gmail.com&amp;su=Re%3A%20Important%20Update%3A%20Megaformer%20Classes%207%2F15" data-act="draft">Draft</a>
       <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
     </div>
   </div>
@@ -635,7 +649,11 @@ footer code{font-family:ui-monospace,Menlo,monospace; font-size:11px}
     fNote.value = ev ? (ev.note || '') : '';
     var ro = !!(ev && ev.readonly);
     fDelete.hidden = !ev || ro;
-    fHint.textContent = ro ? 'From Canvas — edit it in Canvas, not here.' : '';
+    fHint.textContent = ro
+      ? (ev.id && ev.id.indexOf('nonsibi:') === 0
+          ? 'From the Non Sibi content sheet — edit it there.'
+          : 'From Canvas — edit it in Canvas, not here.')
+      : '';
     [fTitle, fLayer, fDate, fTime, fNote].forEach(function (el) { el.disabled = ro; });
     form.querySelector('.btn-primary').disabled = ro;
     if (!ro) fTitle.focus();

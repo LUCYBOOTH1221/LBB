@@ -8,7 +8,9 @@ docs/generated/
 # these are refreshed by scripts and shouldn't create diff noise.
 data/canvas.json
 data/docs.json
+data/groupme.json
 data/groupme-log.md
+data/content-calendar.json
 
 node_modules/
 __pycache__/
