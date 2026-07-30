@@ -40,10 +40,10 @@ accounts:
       (see mail/outlook-rules.md), not by the agent.
 
   work_gmail:
-    address: null                          # CONFIRM: not yet provided
+    address: lucy@nonsibi.vc
     status: blocked
     connector: Gmail
-    role: The marketing job. Second boss.
+    role: Non Sibi Ventures — marketing. Second boss.
     note: >
       HARD LIMIT: the Gmail connector authorizes exactly one Google account.
       Personal Gmail currently holds that slot. Two Gmail accounts cannot both
@@ -76,17 +76,90 @@ people:
     # hats, or two different people? This changes whether her mail is "work".
     note: Family thread traffic. Relationship unverified.
 
-  - handle: boss-tooling
-    address: null                          # CONFIRM: not yet provided
+  - handle: knud
+    name: Knud Betherlesen              # CONFIRM: spelling, from voice input
+    address: null                       # CONFIRM: likely an @tulane.edu address
+    org: Tulane University
+    title: Professor
     priority: high
     channel: groupme
-    note: The GroupMe boss. No connector exists; see canvas-and-groupme.md.
+    workspace: claude
+    note: >
+      Supervises the AI media internship. Primary channel is GroupMe, which has
+      no connector. Add his Tulane address once known — that puts his email on
+      the protected list automatically via never_filter_domains.
 
 # Domains that are always real, never filtered, regardless of sender.
 never_filter_domains:
   - tulane.edu
   - american.edu
   - sf.wish.org
+  - nonsibi.vc
+
+# ---------------------------------------------------------------------------
+# WORKSPACES — the three spaces the dashboard is divided into. Each renders as
+# its own section with its own accent, quick links, and mail lane.
+#
+# `match` routes a message into a space by sender domain. Unmatched mail falls
+# through to the space with `default: true`.
+# ---------------------------------------------------------------------------
+workspaces:
+  - id: tulane
+    name: Tulane
+    subtitle: School
+    accent: "#006747"          # Tulane green
+    accent_alt: "#418FDE"      # Tulane sky blue
+    match: [tulane.edu, american.edu, instructure.com]
+    links:
+      - { label: "Gibson Online",  url: "https://gibson.tulane.edu/" }
+      - { label: "Class Schedule", url: "https://classschedule.tulane.edu/Search.aspx" }
+      - { label: "Canvas",         url: "https://tulane.instructure.com/", confirm: true }
+      - { label: "Outlook",        url: "https://outlook.office.com/mail/" }
+    panels: [due, docs]
+
+  - id: claude
+    name: Claude
+    subtitle: AI media internship
+    accent: "#B0603A"
+    accent_alt: "#C98A5E"
+    match: []                  # no email domain yet — see people.knud
+    links:
+      - { label: "GroupMe", url: "https://web.groupme.com/chats" }
+    panels: [groupme]
+    note: >
+      AI media internship with Prof. Knud Betherlesen (Tulane). Primary channel
+      is GroupMe, which has no connector — messages are pasted in and logged to
+      data/groupme-log.md. See docs/canvas-and-groupme.md.
+
+  - id: nonsibi
+    name: Non Sibi
+    subtitle: Marketing
+    accent: "#3A4550"
+    accent_alt: "#9A7B4F"
+    match: [nonsibi.vc]
+    links:
+      - { label: "Non Sibi",         url: "https://nonsibi.vc/" }
+      - { label: "Content Calendar", url: "", todo: true }
+      - { label: "LinkedIn",         url: "https://www.linkedin.com/feed/" }
+    panels: [calendar]
+
+  - id: personal
+    name: Personal
+    subtitle: Everything else
+    accent: "#6E7266"
+    accent_alt: "#83887E"
+    default: true
+    match: []
+    panels: []
+
+# ---------------------------------------------------------------------------
+# BRAND — Tulane's official colors, used to accent the Tulane section.
+# CONFIRM: taken from the widely published brand palette, not the style guide
+# PDF. Correct these if Communications specifies different values.
+# ---------------------------------------------------------------------------
+brand:
+  tulane_green: "#006747"
+  tulane_blue: "#418FDE"
 
 # ---------------------------------------------------------------------------
 # CLASSES — fill in once Fall 2026 registration is final.

@@ -2,8 +2,13 @@
 """
 Render dashboard/index.html from config.yaml + data/*.json.
 
+The page is divided into the workspaces defined in config.yaml -- Tulane,
+Claude, Non Sibi, Personal -- each with its own accent, quick links, mail lane,
+and panels. Mail routes into a workspace by sender domain (`match`), falling
+through to whichever workspace is marked `default: true`.
+
 Sources that aren't connected render as visibly inactive rather than being
-hidden or filled with placeholder rows -- the dashboard should never imply it
+hidden or filled with placeholder rows: the dashboard should never imply it
 knows something it doesn't.
 
 Usage:
@@ -24,9 +29,6 @@ OUT = ROOT / "dashboard" / "index.html"
 GMAIL_THREAD = "https://mail.google.com/mail/u/0/#inbox/"
 
 
-# --------------------------------------------------------------------------
-# data loading
-# --------------------------------------------------------------------------
 def read_json(name: str) -> dict:
     path = DATA / name
     if not path.exists():
@@ -49,7 +51,6 @@ def e(value) -> str:
 
 
 def ago(iso: str) -> str:
-    """Coarse relative age. Precision past 'days' isn't useful for triage."""
     try:
         then = datetime.fromisoformat(iso.replace("Z", "+00:00"))
     except (ValueError, AttributeError):
@@ -68,7 +69,6 @@ def ago(iso: str) -> str:
 
 
 def until(iso: str) -> tuple[str, str]:
-    """Return (label, severity) for a due date."""
     try:
         then = datetime.fromisoformat(iso.replace("Z", "+00:00"))
     except (ValueError, AttributeError):
@@ -87,6 +87,17 @@ def until(iso: str) -> tuple[str, str]:
     return f"in {days}d", "calm"
 
 
+def route(item: dict, spaces: list[dict], fallback: str) -> str:
+    """Pick a workspace for a message: explicit field, then sender domain."""
+    if item.get("workspace"):
+        return item["workspace"]
+    sender = (item.get("from") or "").lower()
+    for space in spaces:
+        if any(d.lower() in sender for d in (space.get("match") or [])):
+            return space["id"]
+    return fallback
+
+
 # --------------------------------------------------------------------------
 # fragments
 # --------------------------------------------------------------------------
@@ -95,73 +106,148 @@ def empty(message: str, hint: str = "") -> str:
     return f'<div class="empty"><p>{e(message)}</p>{hint_html}</div>'
 
 
-def reply_rows(items: list[dict]) -> str:
-    if not items:
-        return empty(
-            "Nothing is waiting on you.",
-            "This lane fills when a human writes and you haven't answered.",
+def links_bar(links: list[dict]) -> str:
+    if not links:
+        return ""
+    out = []
+    for link in links:
+        label = link.get("label")
+        if not label:
+            continue
+        if not link.get("url"):
+            # Known-missing link: shown, disabled, so it reads as a to-do
+            # rather than silently vanishing from the row.
+            out.append(f'<span class="qlink is-todo" title="URL not set yet">{e(label)}</span>')
+            continue
+        mark = ' <span class="q-confirm" title="unverified URL">?</span>' if link.get("confirm") else ""
+        out.append(
+            f'<a class="qlink" href="{e(link["url"])}" target="_blank" rel="noopener">{e(label)}{mark}</a>'
         )
+    return f'<div class="qlinks">{"".join(out)}</div>' if out else ""
+
+
+def mail_rows(items: list[dict]) -> str:
+    """Each row carries Seen / Replied toggles, persisted in the browser."""
+    if not items:
+        return empty("Nothing waiting here.")
     out = []
     for it in items:
+        tid = e(it.get("id", ""))
         unread = " is-unread" if it.get("unread") else ""
         org = f'<span class="org">{e(it["org"])}</span>' if it.get("org") else ""
-        tid = e(it.get("id", ""))
+        why = f'<p class="row-why">{e(it["reason"])}</p>' if it.get("reason") else ""
         out.append(
-            f"""<li class="row{unread}">
+            f"""<li class="row{unread}" data-id="{tid}">
   <div class="row-main">
     <div class="row-who"><span class="who">{e(it.get('name') or it.get('from'))}</span>{org}</div>
     <a class="row-subject" href="{GMAIL_THREAD}{tid}" target="_blank" rel="noopener">{e(it.get('subject') or '(no subject)')}</a>
-    <p class="row-why">{e(it.get('reason'))}</p>
+    {why}
   </div>
-  <div class="row-meta"><time>{e(ago(it.get('received', '')))}</time></div>
+  <div class="row-side">
+    <time>{e(ago(it.get('received', '')))}</time>
+    <div class="acts">
+      <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
+    </div>
+  </div>
 </li>"""
         )
     return f'<ul class="rows">{"".join(out)}</ul>'
 
 
-def due_rows(events: list[dict]) -> str:
+def panel(title: str, body: str, count: str = "") -> str:
+    badge = f'<span class="count">{e(count)}</span>' if count != "" else ""
+    return f"""<div class="panel">
+  <div class="panel-head"><h3>{e(title)}</h3>{badge}</div>
+  {body}
+</div>"""
+
+
+def due_panel(events: list[dict]) -> str:
     if not events:
-        return empty(
-            "No Canvas feed connected.",
-            "Add CANVAS_ICS_URL to .env, then run scripts/fetch_canvas.py",
+        return panel(
+            "Due soon",
+            empty("No Canvas feed connected.", "CANVAS_ICS_URL in .env, then scripts/fetch_canvas.py"),
+            "0",
         )
-    out = []
-    for ev in events[:12]:
+    rows = []
+    for ev in events[:10]:
         label, sev = until(ev.get("due", ""))
         tag = f'<span class="tag">{e(ev["tag"])}</span>' if ev.get("tag") else ""
-        due_date = e(ev.get("due", "")[:10])
-        out.append(
-            f"""<li class="row">
+        rows.append(
+            f"""<li class="row row-compact">
   <div class="row-main">
-    <div class="row-who">{tag}<span class="date">{due_date}</span></div>
+    <div class="row-who">{tag}<span class="date">{e(ev.get('due', '')[:10])}</span></div>
     <span class="row-subject">{e(ev.get('title'))}</span>
   </div>
-  <div class="row-meta"><span class="pill pill-{sev}">{e(label)}</span></div>
+  <div class="row-side"><span class="pill pill-{sev}">{e(label)}</span></div>
 </li>"""
         )
-    return f'<ul class="rows">{"".join(out)}</ul>'
+    return panel("Due soon", f'<ul class="rows">{"".join(rows)}</ul>', str(len(events)))
 
 
-def doc_rows(docs: list[dict]) -> str:
+def docs_panel(docs: list[dict]) -> str:
     if not docs:
-        return empty(
-            "No documents generated yet.",
-            "Ask the agent to draft from a template in docs/templates/",
-        )
-    out = []
-    for d in docs[:10]:
+        return panel("Documents", empty("Nothing generated yet.", "scripts/gen_doc.py --list"), "0")
+    rows = []
+    for d in docs[:8]:
         tag = f'<span class="tag">{e(d["tag"])}</span>' if d.get("tag") else ""
-        title = e(d.get("title") or d.get("path"))
-        link = e(d.get("url") or "#")
-        out.append(
-            f"""<li class="row">
+        rows.append(
+            f"""<li class="row row-compact">
   <div class="row-main">
     <div class="row-who">{tag}<span class="date">{e(d.get('date', ''))}</span></div>
-    <a class="row-subject" href="{link}">{title}</a>
+    <a class="row-subject" href="{e(d.get('url') or '#')}">{e(d.get('title') or d.get('path'))}</a>
   </div>
 </li>"""
         )
-    return f'<ul class="rows">{"".join(out)}</ul>'
+    return panel("Documents", f'<ul class="rows">{"".join(rows)}</ul>', str(len(docs)))
+
+
+def groupme_panel(log: list[dict]) -> str:
+    if not log:
+        return panel(
+            "GroupMe",
+            empty(
+                "No connector for GroupMe.",
+                'Paste a message to the agent: "log groupme: ..."',
+            ),
+            "0",
+        )
+    rows = []
+    for m in log[:8]:
+        rows.append(
+            f"""<li class="row row-compact">
+  <div class="row-main">
+    <div class="row-who"><span class="who">{e(m.get('from', 'unknown'))}</span>
+      <span class="date">{e(m.get('at', '')[:16])}</span></div>
+    <span class="row-subject">{e(m.get('text', ''))}</span>
+  </div>
+</li>"""
+        )
+    return panel("GroupMe", f'<ul class="rows">{"".join(rows)}</ul>', str(len(log)))
+
+
+def calendar_panel(entries: list[dict]) -> str:
+    if not entries:
+        return panel(
+            "Content calendar",
+            empty("Not connected yet.", "Add the calendar URL to workspaces.nonsibi.links"),
+            "0",
+        )
+    rows = []
+    for c in entries[:8]:
+        label, sev = until(c.get("date", ""))
+        rows.append(
+            f"""<li class="row row-compact">
+  <div class="row-main">
+    <div class="row-who"><span class="date">{e(c.get('date', '')[:10])}</span>
+      <span class="tag">{e(c.get('channel', ''))}</span></div>
+    <span class="row-subject">{e(c.get('title', ''))}</span>
+  </div>
+  <div class="row-side"><span class="pill pill-{sev}">{e(label)}</span></div>
+</li>"""
+        )
+    return panel("Content calendar", f'<ul class="rows">{"".join(rows)}</ul>', str(len(entries)))
 
 
 STATUS_COPY = {
@@ -170,180 +256,269 @@ STATUS_COPY = {
     "manual": ("Manual entry", "warn"),
     "none": ("No connector", "critical"),
 }
+CHANNEL_NAMES = {"personal_gmail": "Personal", "school_outlook": "School", "work_gmail": "Work"}
 
-# Short enough to sit beside a status label without truncating.
-CHANNEL_NAMES = {
-    "personal_gmail": "Personal",
-    "school_outlook": "School",
-    "work_gmail": "Work",
-}
+
+def chip(name: str, addr: str, label: str, sev: str) -> str:
+    return f"""<div class="chip chip-{sev}">
+  <span class="dot"></span><span class="chip-name">{e(name)}</span>
+  <span class="chip-state">{e(label)}</span><span class="chip-addr">{e(addr)}</span>
+</div>"""
 
 
 def channel_chips(config: dict) -> str:
     chips = []
     for key, acct in (config.get("accounts") or {}).items():
-        status = acct.get("status", "none")
-        label, sev = STATUS_COPY.get(status, STATUS_COPY["none"])
-        name = CHANNEL_NAMES.get(key, key.replace("_", " ").title())
-        addr = acct.get("address") or "not set"
-        chips.append(chip(name, addr, label, sev))
-    for name, note in (("Canvas", "ICS feed"), ("GroupMe", "paste-in")):
+        label, sev = STATUS_COPY.get(acct.get("status", "none"), STATUS_COPY["none"])
+        chips.append(
+            chip(CHANNEL_NAMES.get(key, key.replace("_", " ").title()),
+                 acct.get("address") or "not set", label, sev)
+        )
+    for name, note in (("Canvas", "ICS feed"), ("GroupMe", "paste-in"), ("LinkedIn", "manual")):
         chips.append(chip(name, note, "No connector", "critical"))
     return "".join(chips)
 
 
-def chip(name: str, addr: str, label: str, sev: str) -> str:
-    return f"""<div class="chip chip-{sev}">
-  <span class="dot"></span>
-  <span class="chip-name">{e(name)}</span>
-  <span class="chip-state">{e(label)}</span>
-  <span class="chip-addr">{e(addr)}</span>
-</div>"""
-
-
-# --------------------------------------------------------------------------
-# page
 # --------------------------------------------------------------------------
 CSS = """
 :root{
-  --ground:#FBFAF7; --raise:#FFFFFF; --ink:#171A12; --ink-2:#4A4F42; --muted:#6E7266;
-  --line:#E3E2D8; --accent:#3D6B4C; --sky:#40708A;
-  --critical:#A03E2C; --warn:#A8762A; --calm:#3D6B4C;
-  --critical-bg:#F6E7E2; --warn-bg:#F7EEDC; --calm-bg:#E4EDE5;
-  --shadow:0 1px 2px rgba(23,26,18,.05),0 1px 8px rgba(23,26,18,.04);
+  --ground:#FCFCFA; --raise:#FFFFFF; --sunk:#F7F7F3;
+  --ink:#1B1E1A; --ink-2:#565B53; --muted:#868B81; --line:#EAEAE2;
+  --critical:#B04A33; --warn:#9E7526; --calm:#1F7A56;
+  --critical-bg:#FBECE7; --warn-bg:#FCF4E4; --calm-bg:#E8F2ED;
+  --shadow:0 1px 2px rgba(27,30,26,.04); --radius:11px;
+  --tone:#6E7266; --tone-alt:#83887E; --tone-soft:#F5F5F1;
+}
+
+/* Each section carries its own accent via inline --tone-raw. The derived
+   tokens must be computed ON the section: a var() resolved at :root can't see
+   a --tone-raw that only exists further down the tree. */
+section{
+  --tone:var(--tone-raw,#6E7266);
+  --tone-alt:var(--tone-alt-raw,#83887E);
+  --tone-soft:color-mix(in srgb,var(--tone-raw,#6E7266) 8%,#ffffff);
+}
+@media (prefers-color-scheme:dark){
+  section{
+    --tone:color-mix(in srgb,var(--tone-raw,#6E7266) 58%,#ffffff);
+    --tone-alt:color-mix(in srgb,var(--tone-alt-raw,#83887E) 62%,#ffffff);
+    --tone-soft:color-mix(in srgb,var(--tone-raw,#6E7266) 17%,#141613);
+  }
+}
+/* Higher specificity than both rules above, so the toggle wins either way. */
+:root[data-theme="light"] section{
+  --tone:var(--tone-raw,#6E7266);
+  --tone-alt:var(--tone-alt-raw,#83887E);
+  --tone-soft:color-mix(in srgb,var(--tone-raw,#6E7266) 8%,#ffffff);
+}
+:root[data-theme="dark"] section{
+  --tone:color-mix(in srgb,var(--tone-raw,#6E7266) 58%,#ffffff);
+  --tone-alt:color-mix(in srgb,var(--tone-alt-raw,#83887E) 62%,#ffffff);
+  --tone-soft:color-mix(in srgb,var(--tone-raw,#6E7266) 17%,#141613);
 }
 @media (prefers-color-scheme:dark){
   :root{
-    --ground:#12140F; --raise:#1A1D16; --ink:#E7E9E0; --ink-2:#B3B8A9; --muted:#878C7C;
-    --line:#2A2E24; --accent:#8FBF9C; --sky:#7FADC4;
-    --critical:#E08A74; --warn:#D9AC63; --calm:#8FBF9C;
-    --critical-bg:#2E1F1A; --warn-bg:#2C2418; --calm-bg:#1C271F;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 1px 8px rgba(0,0,0,.2);
+    --ground:#141613; --raise:#1C1F19; --sunk:#22251E;
+    --ink:#EAECE5; --ink-2:#B5BAAF; --muted:#888D82; --line:#2E322A;
+    --critical:#E39079; --warn:#D6AC64; --calm:#6FC79E;
+    --critical-bg:#2E211C; --warn-bg:#2C2519; --calm-bg:#1D2A24;
+    --shadow:0 1px 2px rgba(0,0,0,.28);
   }
 }
 :root[data-theme="light"]{
-  --ground:#FBFAF7; --raise:#FFFFFF; --ink:#171A12; --ink-2:#4A4F42; --muted:#6E7266;
-  --line:#E3E2D8; --accent:#3D6B4C; --sky:#40708A;
-  --critical:#A03E2C; --warn:#A8762A; --calm:#3D6B4C;
-  --critical-bg:#F6E7E2; --warn-bg:#F7EEDC; --calm-bg:#E4EDE5;
-  --shadow:0 1px 2px rgba(23,26,18,.05),0 1px 8px rgba(23,26,18,.04);
+  --ground:#FCFCFA; --raise:#FFFFFF; --sunk:#F7F7F3;
+  --ink:#1B1E1A; --ink-2:#565B53; --muted:#868B81; --line:#EAEAE2;
+  --critical:#B04A33; --warn:#9E7526; --calm:#1F7A56;
+  --critical-bg:#FBECE7; --warn-bg:#FCF4E4; --calm-bg:#E8F2ED;
 }
 :root[data-theme="dark"]{
-  --ground:#12140F; --raise:#1A1D16; --ink:#E7E9E0; --ink-2:#B3B8A9; --muted:#878C7C;
-  --line:#2A2E24; --accent:#8FBF9C; --sky:#7FADC4;
-  --critical:#E08A74; --warn:#D9AC63; --calm:#8FBF9C;
-  --critical-bg:#2E1F1A; --warn-bg:#2C2418; --calm-bg:#1C271F;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 1px 8px rgba(0,0,0,.2);
+  --ground:#141613; --raise:#1C1F19; --sunk:#22251E;
+  --ink:#EAECE5; --ink-2:#B5BAAF; --muted:#888D82; --line:#2E322A;
+  --critical:#E39079; --warn:#D6AC64; --calm:#6FC79E;
+  --critical-bg:#2E211C; --warn-bg:#2C2519; --calm-bg:#1D2A24;
 }
 
 *{box-sizing:border-box}
-body{
-  margin:0; background:var(--ground); color:var(--ink);
+body{margin:0; background:var(--ground); color:var(--ink);
   font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
-  font-size:15px; line-height:1.5;
-  -webkit-font-smoothing:antialiased;
-}
-.wrap{max-width:1080px; margin:0 auto; padding:40px 24px 72px;
-  display:flex; flex-direction:column; gap:32px}
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px; margin:0 auto; padding:44px 22px 76px;
+  display:flex; flex-direction:column; gap:26px}
 
-/* header */
-.masthead{display:flex; flex-wrap:wrap; gap:24px; align-items:flex-end;
-  justify-content:space-between; padding-bottom:24px; border-bottom:2px solid var(--ink)}
-.masthead h1{
-  font-family:ui-serif,"Iowan Old Style",Georgia,serif;
-  font-size:clamp(28px,4vw,40px); font-weight:600; margin:0; letter-spacing:-.015em;
-  text-wrap:balance;
-}
-.masthead .sub{color:var(--muted); font-size:14px; margin:6px 0 0}
-.stamp{font-family:ui-monospace,Menlo,monospace; font-size:12px;
+.masthead{display:flex; flex-wrap:wrap; gap:20px; align-items:flex-end; justify-content:space-between}
+.masthead h1{font-family:ui-serif,"Iowan Old Style",Georgia,serif;
+  font-size:clamp(25px,3.4vw,34px); font-weight:600; margin:0;
+  letter-spacing:-.02em; text-wrap:balance}
+.masthead .sub{color:var(--muted); font-size:13px; margin:5px 0 0}
+.stamp{font-family:ui-monospace,Menlo,monospace; font-size:11px;
   color:var(--muted); text-align:right; font-variant-numeric:tabular-nums}
 
-/* unread meter */
-.meter{background:var(--raise); border:1px solid var(--line); border-radius:8px;
-  padding:18px 20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:12px}
+.meter{background:var(--raise); border:1px solid var(--line); border-radius:var(--radius);
+  padding:15px 17px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:9px}
 .meter-top{display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap}
-.meter-label{font-size:11px; letter-spacing:.09em; text-transform:uppercase;
-  color:var(--muted); font-weight:600}
+.meter-label{font-size:10px; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--muted); font-weight:700}
 .meter-nums{font-family:ui-monospace,Menlo,monospace; font-variant-numeric:tabular-nums;
-  font-size:13px; color:var(--ink-2)}
-.meter-nums b{color:var(--critical); font-size:20px; font-weight:600}
-.bar{height:10px; border-radius:5px; background:var(--calm-bg); overflow:hidden; display:flex}
+  font-size:12px; color:var(--ink-2)}
+.meter-nums b{color:var(--critical); font-size:18px; font-weight:600}
+.bar{height:6px; border-radius:3px; background:var(--sunk); overflow:hidden}
 .bar span{display:block; background:var(--critical); height:100%}
-.meter-foot{font-size:13px; color:var(--muted); margin:0}
+.meter-foot{font-size:12px; color:var(--muted); margin:0}
 
-/* sections */
-section{background:var(--raise); border:1px solid var(--line); border-radius:8px;
-  box-shadow:var(--shadow); overflow:hidden}
-.sec-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px;
-  padding:16px 20px; border-bottom:1px solid var(--line)}
+section{background:var(--raise); border:1px solid var(--line);
+  border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden}
+.sec-head{display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:15px 18px; border-left:4px solid var(--tone); background:var(--tone-soft)}
+.sec-title{display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; min-width:0}
 .sec-head h2{font-family:ui-serif,"Iowan Old Style",Georgia,serif;
-  font-size:18px; font-weight:600; margin:0; letter-spacing:-.01em}
-.sec-head .count{font-family:ui-monospace,Menlo,monospace; font-size:12px;
-  color:var(--muted); font-variant-numeric:tabular-nums}
-.sec-note{padding:0 20px; margin:12px 0 0; font-size:13px; color:var(--muted)}
+  font-size:19px; font-weight:600; margin:0; letter-spacing:-.015em; color:var(--tone)}
+.sec-head .who-for{font-size:11.5px; color:var(--muted); font-family:ui-monospace,Menlo,monospace}
+.count{font-family:ui-monospace,Menlo,monospace; font-size:11px; color:var(--muted);
+  font-variant-numeric:tabular-nums; flex-shrink:0}
+.sec-note{padding:11px 18px; margin:0; font-size:12px; color:var(--muted);
+  border-top:1px solid var(--line); background:var(--sunk)}
 
-/* align-items:start keeps a short/empty panel at its natural height
-   instead of stretching it into a void beside a taller sibling */
-.split{display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start}
-@media (max-width:760px){ .split{grid-template-columns:1fr} }
+.qlinks{display:flex; flex-wrap:wrap; gap:6px; padding:11px 18px; border-bottom:1px solid var(--line)}
+.qlink{font-size:12px; font-weight:600; text-decoration:none; color:var(--tone);
+  border:1px solid var(--line); border-radius:99px; padding:4px 11px; background:var(--raise)}
+.qlink:hover,.qlink:focus-visible{border-color:var(--tone); background:var(--tone-soft)}
+.qlink.is-todo{color:var(--muted); border-style:dashed; cursor:default}
+.q-confirm{color:var(--warn); font-weight:700}
 
-/* rows */
 .rows{list-style:none; margin:0; padding:0}
-.row{display:flex; gap:16px; justify-content:space-between; align-items:flex-start;
-  padding:14px 20px; border-bottom:1px solid var(--line)}
+.row{display:flex; gap:14px; justify-content:space-between; align-items:flex-start;
+  padding:12px 18px 12px 14px; border-bottom:1px solid var(--line);
+  border-left:4px solid transparent}
 .row:last-child{border-bottom:none}
-.row.is-unread{border-left:3px solid var(--critical); padding-left:17px}
-.row-main{min-width:0; display:flex; flex-direction:column; gap:3px}
+.row.is-unread{border-left-color:var(--tone)}
+.row-main{min-width:0; display:flex; flex-direction:column; gap:2px}
 .row-who{display:flex; gap:8px; align-items:baseline; flex-wrap:wrap}
 .who{font-weight:600; font-size:13px}
-.org,.date{font-size:12px; color:var(--muted)}
+.org,.date{font-size:11.5px; color:var(--muted)}
 .date{font-family:ui-monospace,Menlo,monospace; font-variant-numeric:tabular-nums}
-.row-subject{color:var(--ink); text-decoration:none; font-size:15px;
+.row-subject{color:var(--ink); text-decoration:none; font-size:14.5px;
   border-bottom:1px solid transparent}
-a.row-subject:hover,a.row-subject:focus-visible{border-bottom-color:var(--accent); color:var(--accent)}
-.row-why{margin:2px 0 0; font-size:12.5px; color:var(--muted); font-style:italic}
-.row-meta{flex-shrink:0; text-align:right}
-.row-meta time{font-family:ui-monospace,Menlo,monospace; font-size:12px;
+a.row-subject:hover,a.row-subject:focus-visible{color:var(--tone); border-bottom-color:var(--tone)}
+.row-why{margin:1px 0 0; font-size:12px; color:var(--muted); font-style:italic}
+.row-side{flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:6px}
+.row-side time{font-family:ui-monospace,Menlo,monospace; font-size:11px;
   color:var(--muted); font-variant-numeric:tabular-nums}
 
-.tag{font-family:ui-monospace,Menlo,monospace; font-size:11px; font-weight:600;
-  color:var(--sky); letter-spacing:.02em}
-.pill{display:inline-block; padding:2px 9px; border-radius:99px; font-size:11.5px;
-  font-weight:600; white-space:nowrap}
+.acts{display:flex; gap:5px}
+.act{font:inherit; font-size:11px; font-weight:600; cursor:pointer;
+  padding:3px 9px; border-radius:99px; white-space:nowrap;
+  border:1px solid var(--line); background:var(--raise); color:var(--muted)}
+.act:hover{border-color:var(--ink-2); color:var(--ink-2)}
+.act[aria-pressed="true"]{border-color:transparent}
+.act-seen[aria-pressed="true"]{background:var(--sunk); color:var(--ink-2)}
+.act-replied[aria-pressed="true"]{background:var(--calm-bg); color:var(--calm)}
+.act[aria-pressed="true"]::before{content:"\\2713\\00a0"}
+.row.done-seen{background:var(--sunk)}
+.row.done-seen .who{color:var(--muted); font-weight:500}
+.row.done-seen .row-subject{color:var(--muted)}
+.row.done-seen .row-why{display:none}
+.row.done-replied{border-left-color:var(--calm)}
+.row.done-replied .row-subject{text-decoration:line-through; text-decoration-color:var(--muted)}
+
+.panels{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line);
+  border-top:1px solid var(--line)}
+.panels:has(.panel:only-child){grid-template-columns:1fr}
+@media (max-width:820px){ .panels{grid-template-columns:1fr} }
+.panel{background:var(--raise)}
+.panel-head{display:flex; align-items:baseline; justify-content:space-between;
+  padding:11px 18px 7px}
+.panel-head h3{margin:0; font-size:11px; font-weight:700; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--muted)}
+.row-compact{padding:9px 18px}
+.tag{font-family:ui-monospace,Menlo,monospace; font-size:10.5px; font-weight:600;
+  color:var(--tone-alt); letter-spacing:.02em}
+.pill{display:inline-block; padding:2px 9px; border-radius:99px;
+  font-size:10.5px; font-weight:600; white-space:nowrap}
 .pill-critical{background:var(--critical-bg); color:var(--critical)}
 .pill-warn{background:var(--warn-bg); color:var(--warn)}
 .pill-calm{background:var(--calm-bg); color:var(--calm)}
 
-/* empty states */
-.empty{padding:28px 20px; text-align:center}
-.empty p{margin:0; color:var(--ink-2); font-size:14px}
-.empty-hint{margin-top:6px !important; font-size:12.5px !important; color:var(--muted) !important;
-  font-family:ui-monospace,Menlo,monospace}
+.empty{padding:22px 18px; text-align:center}
+.empty p{margin:0; color:var(--ink-2); font-size:13px}
+.empty-hint{margin-top:4px !important; font-size:11.5px !important; color:var(--muted) !important;
+  font-family:ui-monospace,Menlo,monospace; word-break:break-word}
 
-/* channel chips */
-.chips{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; padding:16px 20px}
-/* two rows: [dot | name | state] over [address spanning the text columns],
-   so a long name never has to wrap against the status label.
-   Every cell is placed explicitly -- auto-placement gets this wrong. */
-.chip{display:grid; grid-template-columns:auto 1fr auto; gap:2px 9px;
-  align-items:center; padding:10px 12px; text-align:left;
-  border:1px solid var(--line); border-radius:6px; background:var(--ground)}
-.dot{grid-area:1/1; width:8px; height:8px; border-radius:50%}
-.chip-name{grid-area:1/2; font-size:13px; font-weight:600;
+.chips{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:8px; padding:14px 18px}
+.chip{display:grid; grid-template-columns:auto 1fr auto; gap:2px 8px; align-items:center;
+  padding:9px 11px; border:1px solid var(--line); border-radius:7px; background:var(--ground)}
+.dot{grid-area:1/1; width:7px; height:7px; border-radius:50%}
+.chip-name{grid-area:1/2; font-size:12.5px; font-weight:600;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-.chip-state{grid-area:1/3; font-size:11px; font-weight:600; white-space:nowrap}
-.chip-addr{grid-area:2/2/3/4; font-size:11.5px; color:var(--muted);
-  font-family:ui-monospace,Menlo,monospace;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.chip-state{grid-area:1/3; font-size:10px; font-weight:600; white-space:nowrap}
+.chip-addr{grid-area:2/2/3/4; font-size:10.5px; color:var(--muted);
+  font-family:ui-monospace,Menlo,monospace; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap}
 .chip-calm .dot{background:var(--calm)} .chip-calm .chip-state{color:var(--calm)}
 .chip-warn .dot{background:var(--warn)} .chip-warn .chip-state{color:var(--warn)}
 .chip-critical .dot{background:var(--critical)} .chip-critical .chip-state{color:var(--critical)}
 
-footer{color:var(--muted); font-size:12.5px; text-align:center; line-height:1.7}
-footer code{font-family:ui-monospace,Menlo,monospace; font-size:12px}
-:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:2px}
+footer{color:var(--muted); font-size:11.5px; text-align:center; line-height:1.7}
+footer code{font-family:ui-monospace,Menlo,monospace; font-size:11px}
+:focus-visible{outline:2px solid var(--tone); outline-offset:2px; border-radius:3px}
 @media (prefers-reduced-motion:reduce){ *{transition:none !important; animation:none !important} }
 """
+
+JS = """
+// Seen / Replied state lives in this browser, keyed by Gmail thread id, so it
+// survives rebuilds of this page. It is not written back to Gmail.
+(function () {
+  var KEY = 'lbb.marks.v1';
+  var marks = {};
+  try { marks = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (err) { marks = {}; }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(marks)); } catch (err) { /* private mode */ }
+  }
+
+  function paint(row) {
+    var state = marks[row.dataset.id] || {};
+    row.classList.toggle('done-seen', !!state.seen);
+    row.classList.toggle('done-replied', !!state.replied);
+    row.querySelectorAll('.act').forEach(function (btn) {
+      btn.setAttribute('aria-pressed', state[btn.dataset.act] ? 'true' : 'false');
+    });
+  }
+
+  document.querySelectorAll('.row[data-id]').forEach(paint);
+
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('.act');
+    if (!btn) return;
+    var row = btn.closest('.row[data-id]');
+    if (!row) return;
+    var id = row.dataset.id, act = btn.dataset.act;
+    marks[id] = marks[id] || {};
+    marks[id][act] = !marks[id][act];
+    if (act === 'replied' && marks[id].replied) marks[id].seen = true;  // replying implies seen
+    save();
+    paint(row);
+  });
+})();
+"""
+
+
+def workspace_section(space: dict, items: list[dict], panels_html: str, subtitle: str) -> str:
+    note = f'<p class="sec-note">{e(space["note"])}</p>' if space.get("note") else ""
+    style = (
+        f'--tone-raw:{e(space.get("accent", "#6E7266"))};'
+        f'--tone-alt-raw:{e(space.get("accent_alt", "#83887E"))}'
+    )
+    panels = f'<div class="panels">{panels_html}</div>' if panels_html else ""
+    return f"""<section style="{style}">
+    <div class="sec-head">
+      <div class="sec-title"><h2>{e(space['name'])}</h2><span class="who-for">{e(subtitle)}</span></div>
+      <span class="count">{len(items)}</span>
+    </div>
+    {links_bar(space.get('links') or [])}
+    {mail_rows(items)}
+    {panels}
+    {note}
+  </section>"""
 
 
 def build() -> str:
@@ -351,20 +526,45 @@ def build() -> str:
     triage = read_json("triage.json")
     canvas = read_json("canvas.json")
     docs = read_json("docs.json")
+    groupme = read_json("groupme.json")
+    content = read_json("content-calendar.json")
 
-    items = triage.get("items", [])
-    replies = [i for i in items if i.get("lane") == "reply"]
-    watch = [i for i in items if i.get("lane") != "reply"]
-    events = canvas.get("events", [])
+    spaces = config.get("workspaces") or []
+    fallback = next((s["id"] for s in spaces if s.get("default")), spaces[-1]["id"] if spaces else "personal")
+
+    buckets: dict[str, list[dict]] = {s["id"]: [] for s in spaces}
+    for it in triage.get("items", []):
+        buckets.setdefault(route(it, spaces, fallback), []).append(it)
+
+    accounts = config.get("accounts") or {}
+    # Which mailbox each workspace reads from, shown next to its title.
+    subtitles = {
+        "tulane": (accounts.get("school_outlook") or {}).get("address", ""),
+        "nonsibi": (accounts.get("work_gmail") or {}).get("address", ""),
+        "personal": (accounts.get("personal_gmail") or {}).get("address", ""),
+    }
+
+    builders = {
+        "due": lambda: due_panel(canvas.get("events", [])),
+        "docs": lambda: docs_panel(docs.get("items", [])),
+        "groupme": lambda: groupme_panel(groupme.get("items", [])),
+        "calendar": lambda: calendar_panel(content.get("items", [])),
+    }
+
+    sections = []
+    for space in spaces:
+        panels_html = "".join(builders[p]() for p in (space.get("panels") or []) if p in builders)
+        subtitle = subtitles.get(space["id"]) or space.get("subtitle", "")
+        sections.append(workspace_section(space, buckets.get(space["id"], []), panels_html, subtitle))
 
     stats = triage.get("inbox_stats", {})
-    total = stats.get("messages", 0)
-    unread = stats.get("unread", 0)
+    total, unread = stats.get("messages", 0), stats.get("unread", 0)
     sent = stats.get("sent_all_time", 0)
     pct = (unread / total * 100) if total else 0
 
     owner = config.get("owner", {})
     now = datetime.now(timezone.utc)
+    live = sum(1 for a in accounts.values() if a.get("status") == "live")
 
     meter = ""
     if total:
@@ -374,7 +574,7 @@ def build() -> str:
     <span class="meter-nums"><b>{pct:.1f}%</b> &nbsp;{unread:,} unread of {total:,}</span>
   </div>
   <div class="bar"><span style="width:{pct:.1f}%"></span></div>
-  <p class="meter-foot">{sent:,} messages sent, all time &mdash; roughly one reply for every {total // sent if sent else 0} received. Import <code>mail/filters.xml</code> to cut this down.</p>
+  <p class="meter-foot">{sent:,} sent all time &mdash; about one reply per {total // sent if sent else 0} received. Import <code>mail/filters.xml</code> to fix this in one pass.</p>
 </div>"""
 
     return f"""<title>LBB &mdash; Senior Year Command Center</title>
@@ -391,56 +591,25 @@ def build() -> str:
 
   {meter}
 
-  <section>
+  {"".join(sections)}
+
+  <section style="--tone-raw:#6E7266">
     <div class="sec-head">
-      <h2>Waiting on you</h2>
-      <span class="count">{len(replies)}</span>
-    </div>
-    {reply_rows(replies)}
-  </section>
-
-  <div class="split">
-    <section>
-      <div class="sec-head">
-        <h2>Due soon</h2>
-        <span class="count">{len(events)}</span>
-      </div>
-      {due_rows(events)}
-    </section>
-
-    <section>
-      <div class="sec-head">
-        <h2>Keep an eye on</h2>
-        <span class="count">{len(watch)}</span>
-      </div>
-      {reply_rows(watch) if watch else empty("Nothing flagged.")}
-    </section>
-  </div>
-
-  <section>
-    <div class="sec-head">
-      <h2>Documents</h2>
-      <span class="count">{len(docs.get('items', []))}</span>
-    </div>
-    {doc_rows(docs.get('items', []))}
-  </section>
-
-  <section>
-    <div class="sec-head">
-      <h2>Channels</h2>
-      <span class="count">{sum(1 for a in (config.get('accounts') or {}).values() if a.get('status') == 'live')} of {len(config.get('accounts') or {}) + 2} live</span>
+      <div class="sec-title"><h2>Channels</h2></div>
+      <span class="count">{live} of {len(accounts) + 3} live</span>
     </div>
     <div class="chips">{channel_chips(config)}</div>
-    <p class="sec-note" style="padding-bottom:16px">Inactive channels stay visible on purpose &mdash; this panel never
-    shows data it doesn't have. See <code>docs/two-gmail-problem.md</code> and <code>docs/canvas-and-groupme.md</code>.</p>
+    <p class="sec-note">Inactive channels stay visible on purpose &mdash; this panel never shows
+    data it doesn't have. See <code>docs/two-gmail-problem.md</code>.</p>
   </section>
 
   <footer>
-    Rebuild with <code>python3 scripts/build_dashboard.py</code><br>
-    Reads <code>config.yaml</code>, <code>data/triage.json</code>, <code>data/canvas.json</code>, <code>data/docs.json</code>
+    Seen / Replied marks are stored in this browser, not in Gmail.<br>
+    Rebuild with <code>python3 scripts/build_dashboard.py</code>
   </footer>
 
 </div>
+<script>{JS}</script>
 """
 
 

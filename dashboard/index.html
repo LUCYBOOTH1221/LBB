@@ -1,142 +1,184 @@
 <title>LBB &mdash; Senior Year Command Center</title>
 <style>
 :root{
-  --ground:#FBFAF7; --raise:#FFFFFF; --ink:#171A12; --ink-2:#4A4F42; --muted:#6E7266;
-  --line:#E3E2D8; --accent:#3D6B4C; --sky:#40708A;
-  --critical:#A03E2C; --warn:#A8762A; --calm:#3D6B4C;
-  --critical-bg:#F6E7E2; --warn-bg:#F7EEDC; --calm-bg:#E4EDE5;
-  --shadow:0 1px 2px rgba(23,26,18,.05),0 1px 8px rgba(23,26,18,.04);
+  --ground:#FCFCFA; --raise:#FFFFFF; --sunk:#F7F7F3;
+  --ink:#1B1E1A; --ink-2:#565B53; --muted:#868B81; --line:#EAEAE2;
+  --critical:#B04A33; --warn:#9E7526; --calm:#1F7A56;
+  --critical-bg:#FBECE7; --warn-bg:#FCF4E4; --calm-bg:#E8F2ED;
+  --shadow:0 1px 2px rgba(27,30,26,.04); --radius:11px;
+  --tone:#6E7266; --tone-alt:#83887E; --tone-soft:#F5F5F1;
+}
+
+/* Each section carries its own accent via inline --tone-raw. The derived
+   tokens must be computed ON the section: a var() resolved at :root can't see
+   a --tone-raw that only exists further down the tree. */
+section{
+  --tone:var(--tone-raw,#6E7266);
+  --tone-alt:var(--tone-alt-raw,#83887E);
+  --tone-soft:color-mix(in srgb,var(--tone-raw,#6E7266) 8%,#ffffff);
+}
+@media (prefers-color-scheme:dark){
+  section{
+    --tone:color-mix(in srgb,var(--tone-raw,#6E7266) 58%,#ffffff);
+    --tone-alt:color-mix(in srgb,var(--tone-alt-raw,#83887E) 62%,#ffffff);
+    --tone-soft:color-mix(in srgb,var(--tone-raw,#6E7266) 17%,#141613);
+  }
+}
+/* Higher specificity than both rules above, so the toggle wins either way. */
+:root[data-theme="light"] section{
+  --tone:var(--tone-raw,#6E7266);
+  --tone-alt:var(--tone-alt-raw,#83887E);
+  --tone-soft:color-mix(in srgb,var(--tone-raw,#6E7266) 8%,#ffffff);
+}
+:root[data-theme="dark"] section{
+  --tone:color-mix(in srgb,var(--tone-raw,#6E7266) 58%,#ffffff);
+  --tone-alt:color-mix(in srgb,var(--tone-alt-raw,#83887E) 62%,#ffffff);
+  --tone-soft:color-mix(in srgb,var(--tone-raw,#6E7266) 17%,#141613);
 }
 @media (prefers-color-scheme:dark){
   :root{
-    --ground:#12140F; --raise:#1A1D16; --ink:#E7E9E0; --ink-2:#B3B8A9; --muted:#878C7C;
-    --line:#2A2E24; --accent:#8FBF9C; --sky:#7FADC4;
-    --critical:#E08A74; --warn:#D9AC63; --calm:#8FBF9C;
-    --critical-bg:#2E1F1A; --warn-bg:#2C2418; --calm-bg:#1C271F;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 1px 8px rgba(0,0,0,.2);
+    --ground:#141613; --raise:#1C1F19; --sunk:#22251E;
+    --ink:#EAECE5; --ink-2:#B5BAAF; --muted:#888D82; --line:#2E322A;
+    --critical:#E39079; --warn:#D6AC64; --calm:#6FC79E;
+    --critical-bg:#2E211C; --warn-bg:#2C2519; --calm-bg:#1D2A24;
+    --shadow:0 1px 2px rgba(0,0,0,.28);
   }
 }
 :root[data-theme="light"]{
-  --ground:#FBFAF7; --raise:#FFFFFF; --ink:#171A12; --ink-2:#4A4F42; --muted:#6E7266;
-  --line:#E3E2D8; --accent:#3D6B4C; --sky:#40708A;
-  --critical:#A03E2C; --warn:#A8762A; --calm:#3D6B4C;
-  --critical-bg:#F6E7E2; --warn-bg:#F7EEDC; --calm-bg:#E4EDE5;
-  --shadow:0 1px 2px rgba(23,26,18,.05),0 1px 8px rgba(23,26,18,.04);
+  --ground:#FCFCFA; --raise:#FFFFFF; --sunk:#F7F7F3;
+  --ink:#1B1E1A; --ink-2:#565B53; --muted:#868B81; --line:#EAEAE2;
+  --critical:#B04A33; --warn:#9E7526; --calm:#1F7A56;
+  --critical-bg:#FBECE7; --warn-bg:#FCF4E4; --calm-bg:#E8F2ED;
 }
 :root[data-theme="dark"]{
-  --ground:#12140F; --raise:#1A1D16; --ink:#E7E9E0; --ink-2:#B3B8A9; --muted:#878C7C;
-  --line:#2A2E24; --accent:#8FBF9C; --sky:#7FADC4;
-  --critical:#E08A74; --warn:#D9AC63; --calm:#8FBF9C;
-  --critical-bg:#2E1F1A; --warn-bg:#2C2418; --calm-bg:#1C271F;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 1px 8px rgba(0,0,0,.2);
+  --ground:#141613; --raise:#1C1F19; --sunk:#22251E;
+  --ink:#EAECE5; --ink-2:#B5BAAF; --muted:#888D82; --line:#2E322A;
+  --critical:#E39079; --warn:#D6AC64; --calm:#6FC79E;
+  --critical-bg:#2E211C; --warn-bg:#2C2519; --calm-bg:#1D2A24;
 }
 
 *{box-sizing:border-box}
-body{
-  margin:0; background:var(--ground); color:var(--ink);
+body{margin:0; background:var(--ground); color:var(--ink);
   font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
-  font-size:15px; line-height:1.5;
-  -webkit-font-smoothing:antialiased;
-}
-.wrap{max-width:1080px; margin:0 auto; padding:40px 24px 72px;
-  display:flex; flex-direction:column; gap:32px}
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px; margin:0 auto; padding:44px 22px 76px;
+  display:flex; flex-direction:column; gap:26px}
 
-/* header */
-.masthead{display:flex; flex-wrap:wrap; gap:24px; align-items:flex-end;
-  justify-content:space-between; padding-bottom:24px; border-bottom:2px solid var(--ink)}
-.masthead h1{
-  font-family:ui-serif,"Iowan Old Style",Georgia,serif;
-  font-size:clamp(28px,4vw,40px); font-weight:600; margin:0; letter-spacing:-.015em;
-  text-wrap:balance;
-}
-.masthead .sub{color:var(--muted); font-size:14px; margin:6px 0 0}
-.stamp{font-family:ui-monospace,Menlo,monospace; font-size:12px;
+.masthead{display:flex; flex-wrap:wrap; gap:20px; align-items:flex-end; justify-content:space-between}
+.masthead h1{font-family:ui-serif,"Iowan Old Style",Georgia,serif;
+  font-size:clamp(25px,3.4vw,34px); font-weight:600; margin:0;
+  letter-spacing:-.02em; text-wrap:balance}
+.masthead .sub{color:var(--muted); font-size:13px; margin:5px 0 0}
+.stamp{font-family:ui-monospace,Menlo,monospace; font-size:11px;
   color:var(--muted); text-align:right; font-variant-numeric:tabular-nums}
 
-/* unread meter */
-.meter{background:var(--raise); border:1px solid var(--line); border-radius:8px;
-  padding:18px 20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:12px}
+.meter{background:var(--raise); border:1px solid var(--line); border-radius:var(--radius);
+  padding:15px 17px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:9px}
 .meter-top{display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap}
-.meter-label{font-size:11px; letter-spacing:.09em; text-transform:uppercase;
-  color:var(--muted); font-weight:600}
+.meter-label{font-size:10px; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--muted); font-weight:700}
 .meter-nums{font-family:ui-monospace,Menlo,monospace; font-variant-numeric:tabular-nums;
-  font-size:13px; color:var(--ink-2)}
-.meter-nums b{color:var(--critical); font-size:20px; font-weight:600}
-.bar{height:10px; border-radius:5px; background:var(--calm-bg); overflow:hidden; display:flex}
+  font-size:12px; color:var(--ink-2)}
+.meter-nums b{color:var(--critical); font-size:18px; font-weight:600}
+.bar{height:6px; border-radius:3px; background:var(--sunk); overflow:hidden}
 .bar span{display:block; background:var(--critical); height:100%}
-.meter-foot{font-size:13px; color:var(--muted); margin:0}
+.meter-foot{font-size:12px; color:var(--muted); margin:0}
 
-/* sections */
-section{background:var(--raise); border:1px solid var(--line); border-radius:8px;
-  box-shadow:var(--shadow); overflow:hidden}
-.sec-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px;
-  padding:16px 20px; border-bottom:1px solid var(--line)}
+section{background:var(--raise); border:1px solid var(--line);
+  border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden}
+.sec-head{display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:15px 18px; border-left:4px solid var(--tone); background:var(--tone-soft)}
+.sec-title{display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; min-width:0}
 .sec-head h2{font-family:ui-serif,"Iowan Old Style",Georgia,serif;
-  font-size:18px; font-weight:600; margin:0; letter-spacing:-.01em}
-.sec-head .count{font-family:ui-monospace,Menlo,monospace; font-size:12px;
-  color:var(--muted); font-variant-numeric:tabular-nums}
-.sec-note{padding:0 20px; margin:12px 0 0; font-size:13px; color:var(--muted)}
+  font-size:19px; font-weight:600; margin:0; letter-spacing:-.015em; color:var(--tone)}
+.sec-head .who-for{font-size:11.5px; color:var(--muted); font-family:ui-monospace,Menlo,monospace}
+.count{font-family:ui-monospace,Menlo,monospace; font-size:11px; color:var(--muted);
+  font-variant-numeric:tabular-nums; flex-shrink:0}
+.sec-note{padding:11px 18px; margin:0; font-size:12px; color:var(--muted);
+  border-top:1px solid var(--line); background:var(--sunk)}
 
-/* align-items:start keeps a short/empty panel at its natural height
-   instead of stretching it into a void beside a taller sibling */
-.split{display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start}
-@media (max-width:760px){ .split{grid-template-columns:1fr} }
+.qlinks{display:flex; flex-wrap:wrap; gap:6px; padding:11px 18px; border-bottom:1px solid var(--line)}
+.qlink{font-size:12px; font-weight:600; text-decoration:none; color:var(--tone);
+  border:1px solid var(--line); border-radius:99px; padding:4px 11px; background:var(--raise)}
+.qlink:hover,.qlink:focus-visible{border-color:var(--tone); background:var(--tone-soft)}
+.qlink.is-todo{color:var(--muted); border-style:dashed; cursor:default}
+.q-confirm{color:var(--warn); font-weight:700}
 
-/* rows */
 .rows{list-style:none; margin:0; padding:0}
-.row{display:flex; gap:16px; justify-content:space-between; align-items:flex-start;
-  padding:14px 20px; border-bottom:1px solid var(--line)}
+.row{display:flex; gap:14px; justify-content:space-between; align-items:flex-start;
+  padding:12px 18px 12px 14px; border-bottom:1px solid var(--line);
+  border-left:4px solid transparent}
 .row:last-child{border-bottom:none}
-.row.is-unread{border-left:3px solid var(--critical); padding-left:17px}
-.row-main{min-width:0; display:flex; flex-direction:column; gap:3px}
+.row.is-unread{border-left-color:var(--tone)}
+.row-main{min-width:0; display:flex; flex-direction:column; gap:2px}
 .row-who{display:flex; gap:8px; align-items:baseline; flex-wrap:wrap}
 .who{font-weight:600; font-size:13px}
-.org,.date{font-size:12px; color:var(--muted)}
+.org,.date{font-size:11.5px; color:var(--muted)}
 .date{font-family:ui-monospace,Menlo,monospace; font-variant-numeric:tabular-nums}
-.row-subject{color:var(--ink); text-decoration:none; font-size:15px;
+.row-subject{color:var(--ink); text-decoration:none; font-size:14.5px;
   border-bottom:1px solid transparent}
-a.row-subject:hover,a.row-subject:focus-visible{border-bottom-color:var(--accent); color:var(--accent)}
-.row-why{margin:2px 0 0; font-size:12.5px; color:var(--muted); font-style:italic}
-.row-meta{flex-shrink:0; text-align:right}
-.row-meta time{font-family:ui-monospace,Menlo,monospace; font-size:12px;
+a.row-subject:hover,a.row-subject:focus-visible{color:var(--tone); border-bottom-color:var(--tone)}
+.row-why{margin:1px 0 0; font-size:12px; color:var(--muted); font-style:italic}
+.row-side{flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:6px}
+.row-side time{font-family:ui-monospace,Menlo,monospace; font-size:11px;
   color:var(--muted); font-variant-numeric:tabular-nums}
 
-.tag{font-family:ui-monospace,Menlo,monospace; font-size:11px; font-weight:600;
-  color:var(--sky); letter-spacing:.02em}
-.pill{display:inline-block; padding:2px 9px; border-radius:99px; font-size:11.5px;
-  font-weight:600; white-space:nowrap}
+.acts{display:flex; gap:5px}
+.act{font:inherit; font-size:11px; font-weight:600; cursor:pointer;
+  padding:3px 9px; border-radius:99px; white-space:nowrap;
+  border:1px solid var(--line); background:var(--raise); color:var(--muted)}
+.act:hover{border-color:var(--ink-2); color:var(--ink-2)}
+.act[aria-pressed="true"]{border-color:transparent}
+.act-seen[aria-pressed="true"]{background:var(--sunk); color:var(--ink-2)}
+.act-replied[aria-pressed="true"]{background:var(--calm-bg); color:var(--calm)}
+.act[aria-pressed="true"]::before{content:"\2713\00a0"}
+.row.done-seen{background:var(--sunk)}
+.row.done-seen .who{color:var(--muted); font-weight:500}
+.row.done-seen .row-subject{color:var(--muted)}
+.row.done-seen .row-why{display:none}
+.row.done-replied{border-left-color:var(--calm)}
+.row.done-replied .row-subject{text-decoration:line-through; text-decoration-color:var(--muted)}
+
+.panels{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line);
+  border-top:1px solid var(--line)}
+.panels:has(.panel:only-child){grid-template-columns:1fr}
+@media (max-width:820px){ .panels{grid-template-columns:1fr} }
+.panel{background:var(--raise)}
+.panel-head{display:flex; align-items:baseline; justify-content:space-between;
+  padding:11px 18px 7px}
+.panel-head h3{margin:0; font-size:11px; font-weight:700; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--muted)}
+.row-compact{padding:9px 18px}
+.tag{font-family:ui-monospace,Menlo,monospace; font-size:10.5px; font-weight:600;
+  color:var(--tone-alt); letter-spacing:.02em}
+.pill{display:inline-block; padding:2px 9px; border-radius:99px;
+  font-size:10.5px; font-weight:600; white-space:nowrap}
 .pill-critical{background:var(--critical-bg); color:var(--critical)}
 .pill-warn{background:var(--warn-bg); color:var(--warn)}
 .pill-calm{background:var(--calm-bg); color:var(--calm)}
 
-/* empty states */
-.empty{padding:28px 20px; text-align:center}
-.empty p{margin:0; color:var(--ink-2); font-size:14px}
-.empty-hint{margin-top:6px !important; font-size:12.5px !important; color:var(--muted) !important;
-  font-family:ui-monospace,Menlo,monospace}
+.empty{padding:22px 18px; text-align:center}
+.empty p{margin:0; color:var(--ink-2); font-size:13px}
+.empty-hint{margin-top:4px !important; font-size:11.5px !important; color:var(--muted) !important;
+  font-family:ui-monospace,Menlo,monospace; word-break:break-word}
 
-/* channel chips */
-.chips{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; padding:16px 20px}
-/* two rows: [dot | name | state] over [address spanning the text columns],
-   so a long name never has to wrap against the status label.
-   Every cell is placed explicitly -- auto-placement gets this wrong. */
-.chip{display:grid; grid-template-columns:auto 1fr auto; gap:2px 9px;
-  align-items:center; padding:10px 12px; text-align:left;
-  border:1px solid var(--line); border-radius:6px; background:var(--ground)}
-.dot{grid-area:1/1; width:8px; height:8px; border-radius:50%}
-.chip-name{grid-area:1/2; font-size:13px; font-weight:600;
+.chips{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:8px; padding:14px 18px}
+.chip{display:grid; grid-template-columns:auto 1fr auto; gap:2px 8px; align-items:center;
+  padding:9px 11px; border:1px solid var(--line); border-radius:7px; background:var(--ground)}
+.dot{grid-area:1/1; width:7px; height:7px; border-radius:50%}
+.chip-name{grid-area:1/2; font-size:12.5px; font-weight:600;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-.chip-state{grid-area:1/3; font-size:11px; font-weight:600; white-space:nowrap}
-.chip-addr{grid-area:2/2/3/4; font-size:11.5px; color:var(--muted);
-  font-family:ui-monospace,Menlo,monospace;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.chip-state{grid-area:1/3; font-size:10px; font-weight:600; white-space:nowrap}
+.chip-addr{grid-area:2/2/3/4; font-size:10.5px; color:var(--muted);
+  font-family:ui-monospace,Menlo,monospace; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap}
 .chip-calm .dot{background:var(--calm)} .chip-calm .chip-state{color:var(--calm)}
 .chip-warn .dot{background:var(--warn)} .chip-warn .chip-state{color:var(--warn)}
 .chip-critical .dot{background:var(--critical)} .chip-critical .chip-state{color:var(--critical)}
 
-footer{color:var(--muted); font-size:12.5px; text-align:center; line-height:1.7}
-footer code{font-family:ui-monospace,Menlo,monospace; font-size:12px}
-:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:2px}
+footer{color:var(--muted); font-size:11.5px; text-align:center; line-height:1.7}
+footer code{font-family:ui-monospace,Menlo,monospace; font-size:11px}
+:focus-visible{outline:2px solid var(--tone); outline-offset:2px; border-radius:3px}
 @media (prefers-reduced-motion:reduce){ *{transition:none !important; animation:none !important} }
 </style>
 <div class="wrap">
@@ -146,7 +188,7 @@ footer code{font-family:ui-monospace,Menlo,monospace; font-size:12px}
       <h1>Senior Year Command Center</h1>
       <p class="sub">Lucy Booth &middot; Tulane University &middot; Fall 2026</p>
     </div>
-    <div class="stamp">built 2026-07-29 20:59 UTC<br>source: seed</div>
+    <div class="stamp">built 2026-07-30 16:46 UTC<br>source: seed</div>
   </header>
 
   <div class="meter">
@@ -155,137 +197,232 @@ footer code{font-family:ui-monospace,Menlo,monospace; font-size:12px}
     <span class="meter-nums"><b>98.0%</b> &nbsp;72,517 unread of 73,969</span>
   </div>
   <div class="bar"><span style="width:98.0%"></span></div>
-  <p class="meter-foot">341 messages sent, all time &mdash; roughly one reply for every 216 received. Import <code>mail/filters.xml</code> to cut this down.</p>
+  <p class="meter-foot">341 sent all time &mdash; about one reply per 216 received. Import <code>mail/filters.xml</code> to fix this in one pass.</p>
 </div>
 
-  <section>
+  <section style="--tone-raw:#006747;--tone-alt-raw:#418FDE">
     <div class="sec-head">
-      <h2>Waiting on you</h2>
-      <span class="count">5</span>
+      <div class="sec-title"><h2>Tulane</h2><span class="who-for">lbooth1@tulane.edu</span></div>
+      <span class="count">2</span>
     </div>
-    <ul class="rows"><li class="row is-unread">
-  <div class="row-main">
-    <div class="row-who"><span class="who">Betsy Biern</span><span class="org">Make-A-Wish Greater Bay Area</span></div>
-    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f9ba134f22448a" target="_blank" rel="noopener">Chez panisse</a>
-    <p class="row-why">VIP sender, unread, addressed to you directly</p>
-  </div>
-  <div class="row-meta"><time>3d ago</time></div>
-</li><li class="row is-unread">
-  <div class="row-main">
-    <div class="row-who"><span class="who">Betsy Biern</span><span class="org">Make-A-Wish Greater Bay Area</span></div>
-    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f856d560cf77e6" target="_blank" rel="noopener">FW: Lula Cellars Order Receipt - for Aurora&#x27;s family</a>
-    <p class="row-why">VIP sender, unread, CCs your Tulane address</p>
-  </div>
-  <div class="row-meta"><time>8d ago</time></div>
-</li><li class="row is-unread">
-  <div class="row-main">
-    <div class="row-who"><span class="who">Betsy Biern</span><span class="org">Make-A-Wish Greater Bay Area</span></div>
-    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f5c63e3326396d" target="_blank" rel="noopener">FW: Lula Cellars Order Receipt - for AURORA&#x27;s family</a>
-    <p class="row-why">VIP sender, unread, contains an explicit instruction</p>
-  </div>
-  <div class="row-meta"><time>16d ago</time></div>
-</li><li class="row is-unread">
-  <div class="row-main">
-    <div class="row-who"><span class="who">Betsy</span></div>
-    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f9ba0460ddd0e9" target="_blank" rel="noopener">Fw: Your reservation at Café Chez Panisse is confirmed</a>
-    <p class="row-why">VIP sender, unread</p>
-  </div>
-  <div class="row-meta"><time>3d ago</time></div>
-</li><li class="row">
-  <div class="row-main">
-    <div class="row-who"><span class="who">Betsy</span></div>
-    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f85b1174d149b5" target="_blank" rel="noopener">Fw: The conversation Q&amp;A is in session</a>
-    <p class="row-why">Contains a direct ask: &quot;Ask dad for his login for master class&quot;</p>
-  </div>
-  <div class="row-meta"><time>8d ago</time></div>
-</li></ul>
-  </section>
-
-  <div class="split">
-    <section>
-      <div class="sec-head">
-        <h2>Due soon</h2>
-        <span class="count">0</span>
-      </div>
-      <div class="empty"><p>No Canvas feed connected.</p><p class="empty-hint">Add CANVAS_ICS_URL to .env, then run scripts/fetch_canvas.py</p></div>
-    </section>
-
-    <section>
-      <div class="sec-head">
-        <h2>Keep an eye on</h2>
-        <span class="count">3</span>
-      </div>
-      <ul class="rows"><li class="row is-unread">
+    <div class="qlinks"><a class="qlink" href="https://gibson.tulane.edu/" target="_blank" rel="noopener">Gibson Online</a><a class="qlink" href="https://classschedule.tulane.edu/Search.aspx" target="_blank" rel="noopener">Class Schedule</a><a class="qlink" href="https://tulane.instructure.com/" target="_blank" rel="noopener">Canvas <span class="q-confirm" title="unverified URL">?</span></a><a class="qlink" href="https://outlook.office.com/mail/" target="_blank" rel="noopener">Outlook</a></div>
+    <ul class="rows"><li class="row is-unread" data-id="19fa96430c2e725d">
   <div class="row-main">
     <div class="row-who"><span class="who">AU Washington Semester Program</span></div>
     <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19fa96430c2e725d" target="_blank" rel="noopener">This week: DC Employer + WSP Info Sessions!</a>
     <p class="row-why">Protected domain, addressed &quot;Dear Lucy&quot;, time-boxed events</p>
   </div>
-  <div class="row-meta"><time>1d ago</time></div>
-</li><li class="row is-unread">
+  <div class="row-side">
+    <time>2d ago</time>
+    <div class="acts">
+      <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
+    </div>
+  </div>
+</li><li class="row is-unread" data-id="19f8a44c984e4df8">
   <div class="row-main">
     <div class="row-who"><span class="who">AU Washington Semester Program</span></div>
     <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f8a44c984e4df8" target="_blank" rel="noopener">Upcoming Events: Careers in Congress info session + more!</a>
     <p class="row-why">Protected domain, event deadlines</p>
   </div>
-  <div class="row-meta"><time>7d ago</time></div>
-</li><li class="row">
+  <div class="row-side">
+    <time>8d ago</time>
+    <div class="acts">
+      <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
+    </div>
+  </div>
+</li></ul>
+    <div class="panels"><div class="panel">
+  <div class="panel-head"><h3>Due soon</h3><span class="count">0</span></div>
+  <div class="empty"><p>No Canvas feed connected.</p><p class="empty-hint">CANVAS_ICS_URL in .env, then scripts/fetch_canvas.py</p></div>
+</div><div class="panel">
+  <div class="panel-head"><h3>Documents</h3><span class="count">0</span></div>
+  <div class="empty"><p>Nothing generated yet.</p><p class="empty-hint">scripts/gen_doc.py --list</p></div>
+</div></div>
+    
+  </section><section style="--tone-raw:#B0603A;--tone-alt-raw:#C98A5E">
+    <div class="sec-head">
+      <div class="sec-title"><h2>Claude</h2><span class="who-for">AI media internship</span></div>
+      <span class="count">0</span>
+    </div>
+    <div class="qlinks"><a class="qlink" href="https://web.groupme.com/chats" target="_blank" rel="noopener">GroupMe</a></div>
+    <div class="empty"><p>Nothing waiting here.</p></div>
+    <div class="panels"><div class="panel">
+  <div class="panel-head"><h3>GroupMe</h3><span class="count">0</span></div>
+  <div class="empty"><p>No connector for GroupMe.</p><p class="empty-hint">Paste a message to the agent: &quot;log groupme: ...&quot;</p></div>
+</div></div>
+    <p class="sec-note">AI media internship with Prof. Knud Betherlesen (Tulane). Primary channel is GroupMe, which has no connector — messages are pasted in and logged to data/groupme-log.md. See docs/canvas-and-groupme.md.
+</p>
+  </section><section style="--tone-raw:#3A4550;--tone-alt-raw:#9A7B4F">
+    <div class="sec-head">
+      <div class="sec-title"><h2>Non Sibi</h2><span class="who-for">lucy@nonsibi.vc</span></div>
+      <span class="count">0</span>
+    </div>
+    <div class="qlinks"><a class="qlink" href="https://nonsibi.vc/" target="_blank" rel="noopener">Non Sibi</a><span class="qlink is-todo" title="URL not set yet">Content Calendar</span><a class="qlink" href="https://www.linkedin.com/feed/" target="_blank" rel="noopener">LinkedIn</a></div>
+    <div class="empty"><p>Nothing waiting here.</p></div>
+    <div class="panels"><div class="panel">
+  <div class="panel-head"><h3>Content calendar</h3><span class="count">0</span></div>
+  <div class="empty"><p>Not connected yet.</p><p class="empty-hint">Add the calendar URL to workspaces.nonsibi.links</p></div>
+</div></div>
+    
+  </section><section style="--tone-raw:#6E7266;--tone-alt-raw:#83887E">
+    <div class="sec-head">
+      <div class="sec-title"><h2>Personal</h2><span class="who-for">lbb122104@gmail.com</span></div>
+      <span class="count">6</span>
+    </div>
+    
+    <ul class="rows"><li class="row is-unread" data-id="19f9ba134f22448a">
+  <div class="row-main">
+    <div class="row-who"><span class="who">Betsy Biern</span><span class="org">Make-A-Wish Greater Bay Area</span></div>
+    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f9ba134f22448a" target="_blank" rel="noopener">Chez panisse</a>
+    <p class="row-why">VIP sender, unread, addressed to you directly</p>
+  </div>
+  <div class="row-side">
+    <time>4d ago</time>
+    <div class="acts">
+      <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
+    </div>
+  </div>
+</li><li class="row is-unread" data-id="19f856d560cf77e6">
+  <div class="row-main">
+    <div class="row-who"><span class="who">Betsy Biern</span><span class="org">Make-A-Wish Greater Bay Area</span></div>
+    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f856d560cf77e6" target="_blank" rel="noopener">FW: Lula Cellars Order Receipt - for Aurora&#x27;s family</a>
+    <p class="row-why">VIP sender, unread, CCs your Tulane address</p>
+  </div>
+  <div class="row-side">
+    <time>9d ago</time>
+    <div class="acts">
+      <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
+    </div>
+  </div>
+</li><li class="row is-unread" data-id="19f5c63e3326396d">
+  <div class="row-main">
+    <div class="row-who"><span class="who">Betsy Biern</span><span class="org">Make-A-Wish Greater Bay Area</span></div>
+    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f5c63e3326396d" target="_blank" rel="noopener">FW: Lula Cellars Order Receipt - for AURORA&#x27;s family</a>
+    <p class="row-why">VIP sender, unread, contains an explicit instruction</p>
+  </div>
+  <div class="row-side">
+    <time>16d ago</time>
+    <div class="acts">
+      <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
+    </div>
+  </div>
+</li><li class="row is-unread" data-id="19f9ba0460ddd0e9">
+  <div class="row-main">
+    <div class="row-who"><span class="who">Betsy</span></div>
+    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f9ba0460ddd0e9" target="_blank" rel="noopener">Fw: Your reservation at Café Chez Panisse is confirmed</a>
+    <p class="row-why">VIP sender, unread</p>
+  </div>
+  <div class="row-side">
+    <time>4d ago</time>
+    <div class="acts">
+      <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
+    </div>
+  </div>
+</li><li class="row" data-id="19f85b1174d149b5">
+  <div class="row-main">
+    <div class="row-who"><span class="who">Betsy</span></div>
+    <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f85b1174d149b5" target="_blank" rel="noopener">Fw: The conversation Q&amp;A is in session</a>
+    <p class="row-why">Contains a direct ask: &quot;Ask dad for his login for master class&quot;</p>
+  </div>
+  <div class="row-side">
+    <time>8d ago</time>
+    <div class="acts">
+      <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
+    </div>
+  </div>
+</li><li class="row" data-id="19f6770134c3a90a">
   <div class="row-main">
     <div class="row-who"><span class="who">Romney Pilates</span></div>
     <a class="row-subject" href="https://mail.google.com/mail/u/0/#inbox/19f6770134c3a90a" target="_blank" rel="noopener">Important Update: Megaformer Classes 7/15</a>
     <p class="row-why">Human sender, schedule change</p>
   </div>
-  <div class="row-meta"><time>14d ago</time></div>
-</li></ul>
-    </section>
-  </div>
-
-  <section>
-    <div class="sec-head">
-      <h2>Documents</h2>
-      <span class="count">0</span>
+  <div class="row-side">
+    <time>14d ago</time>
+    <div class="acts">
+      <button type="button" class="act act-seen" data-act="seen" aria-pressed="false">Seen</button>
+      <button type="button" class="act act-replied" data-act="replied" aria-pressed="false">Replied</button>
     </div>
-    <div class="empty"><p>No documents generated yet.</p><p class="empty-hint">Ask the agent to draft from a template in docs/templates/</p></div>
+  </div>
+</li></ul>
+    
+    
   </section>
 
-  <section>
+  <section style="--tone-raw:#6E7266">
     <div class="sec-head">
-      <h2>Channels</h2>
-      <span class="count">1 of 5 live</span>
+      <div class="sec-title"><h2>Channels</h2></div>
+      <span class="count">1 of 6 live</span>
     </div>
     <div class="chips"><div class="chip chip-calm">
-  <span class="dot"></span>
-  <span class="chip-name">Personal</span>
-  <span class="chip-state">Connected</span>
-  <span class="chip-addr">lbb122104@gmail.com</span>
+  <span class="dot"></span><span class="chip-name">Personal</span>
+  <span class="chip-state">Connected</span><span class="chip-addr">lbb122104@gmail.com</span>
 </div><div class="chip chip-warn">
-  <span class="dot"></span>
-  <span class="chip-name">School</span>
-  <span class="chip-state">Not authorized</span>
-  <span class="chip-addr">lbooth1@tulane.edu</span>
+  <span class="dot"></span><span class="chip-name">School</span>
+  <span class="chip-state">Not authorized</span><span class="chip-addr">lbooth1@tulane.edu</span>
 </div><div class="chip chip-warn">
-  <span class="dot"></span>
-  <span class="chip-name">Work</span>
-  <span class="chip-state">Not authorized</span>
-  <span class="chip-addr">not set</span>
+  <span class="dot"></span><span class="chip-name">Work</span>
+  <span class="chip-state">Not authorized</span><span class="chip-addr">lucy@nonsibi.vc</span>
 </div><div class="chip chip-critical">
-  <span class="dot"></span>
-  <span class="chip-name">Canvas</span>
-  <span class="chip-state">No connector</span>
-  <span class="chip-addr">ICS feed</span>
+  <span class="dot"></span><span class="chip-name">Canvas</span>
+  <span class="chip-state">No connector</span><span class="chip-addr">ICS feed</span>
 </div><div class="chip chip-critical">
-  <span class="dot"></span>
-  <span class="chip-name">GroupMe</span>
-  <span class="chip-state">No connector</span>
-  <span class="chip-addr">paste-in</span>
+  <span class="dot"></span><span class="chip-name">GroupMe</span>
+  <span class="chip-state">No connector</span><span class="chip-addr">paste-in</span>
+</div><div class="chip chip-critical">
+  <span class="dot"></span><span class="chip-name">LinkedIn</span>
+  <span class="chip-state">No connector</span><span class="chip-addr">manual</span>
 </div></div>
-    <p class="sec-note" style="padding-bottom:16px">Inactive channels stay visible on purpose &mdash; this panel never
-    shows data it doesn't have. See <code>docs/two-gmail-problem.md</code> and <code>docs/canvas-and-groupme.md</code>.</p>
+    <p class="sec-note">Inactive channels stay visible on purpose &mdash; this panel never shows
+    data it doesn't have. See <code>docs/two-gmail-problem.md</code>.</p>
   </section>
 
   <footer>
-    Rebuild with <code>python3 scripts/build_dashboard.py</code><br>
-    Reads <code>config.yaml</code>, <code>data/triage.json</code>, <code>data/canvas.json</code>, <code>data/docs.json</code>
+    Seen / Replied marks are stored in this browser, not in Gmail.<br>
+    Rebuild with <code>python3 scripts/build_dashboard.py</code>
   </footer>
 
 </div>
+<script>
+// Seen / Replied state lives in this browser, keyed by Gmail thread id, so it
+// survives rebuilds of this page. It is not written back to Gmail.
+(function () {
+  var KEY = 'lbb.marks.v1';
+  var marks = {};
+  try { marks = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (err) { marks = {}; }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(marks)); } catch (err) { /* private mode */ }
+  }
+
+  function paint(row) {
+    var state = marks[row.dataset.id] || {};
+    row.classList.toggle('done-seen', !!state.seen);
+    row.classList.toggle('done-replied', !!state.replied);
+    row.querySelectorAll('.act').forEach(function (btn) {
+      btn.setAttribute('aria-pressed', state[btn.dataset.act] ? 'true' : 'false');
+    });
+  }
+
+  document.querySelectorAll('.row[data-id]').forEach(paint);
+
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('.act');
+    if (!btn) return;
+    var row = btn.closest('.row[data-id]');
+    if (!row) return;
+    var id = row.dataset.id, act = btn.dataset.act;
+    marks[id] = marks[id] || {};
+    marks[id][act] = !marks[id][act];
+    if (act === 'replied' && marks[id].replied) marks[id].seen = true;  // replying implies seen
+    save();
+    paint(row);
+  });
+})();
+</script>
