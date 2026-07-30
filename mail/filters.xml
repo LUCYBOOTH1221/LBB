@@ -4,7 +4,7 @@
   <entry>
     <category term='filter'></category>
     <title>Mail Filter</title>
-    <apps:property name='from' value='{bbiern@sf.wish.org betsyb1115@yahoo.com *@tulane.edu *@american.edu *@sf.wish.org}'/>
+    <apps:property name='from' value='{bbiern@sf.wish.org betsyb1115@yahoo.com kberthelsen@tulane.edu kent@nonsibi.vc *@tulane.edu *@american.edu *@sf.wish.org *@nonsibi.vc}'/>
     <apps:property name='shouldAlwaysMarkAsImportant' value='true'/>
     <apps:property name='shouldNeverSpam' value='true'/>
   </entry>

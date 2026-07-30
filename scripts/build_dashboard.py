@@ -88,13 +88,27 @@ def until(iso: str) -> tuple[str, str]:
 
 
 def route(item: dict, spaces: list[dict], fallback: str) -> str:
-    """Pick a workspace for a message: explicit field, then sender domain."""
+    """Pick a workspace for a message.
+
+    Order matters: an explicit `workspace` on the item wins, then an exact
+    address match, then a domain match. Address-before-domain is what lets
+    kberthelsen@tulane.edu belong to Claude even though the Tulane workspace
+    claims all of tulane.edu -- otherwise workspace order would decide it.
+    """
     if item.get("workspace"):
         return item["workspace"]
     sender = (item.get("from") or "").lower()
+    if not sender:
+        return fallback
+
     for space in spaces:
-        if any(d.lower() in sender for d in (space.get("match") or [])):
-            return space["id"]
+        for rule in space.get("match") or []:
+            if "@" in rule and rule.lower() in sender:
+                return space["id"]
+    for space in spaces:
+        for rule in space.get("match") or []:
+            if "@" not in rule and rule.lower() in sender:
+                return space["id"]
     return fallback
 
 

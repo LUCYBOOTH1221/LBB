@@ -77,17 +77,27 @@ people:
     note: Family thread traffic. Relationship unverified.
 
   - handle: knud
-    name: Knud Betherlesen              # CONFIRM: spelling, from voice input
-    address: null                       # CONFIRM: likely an @tulane.edu address
+    name: Knud Berthelsen
+    address: kberthelsen@tulane.edu
     org: Tulane University
     title: Professor
     priority: high
-    channel: groupme
+    channel: [groupme, email]
     workspace: claude
     note: >
-      Supervises the AI media internship. Primary channel is GroupMe, which has
-      no connector. Add his Tulane address once known — that puts his email on
-      the protected list automatically via never_filter_domains.
+      Supervises the AI media internship. His address is @tulane.edu, which the
+      Tulane workspace also claims — routing resolves exact addresses before
+      domains, so his mail lands in Claude. GroupMe remains the primary channel
+      and has no connector.
+
+  - handle: kent
+    name: Kent Lucas
+    address: kent@nonsibi.vc            # CONFIRM: given as "kent@nonsibi"; .vc assumed
+    org: Non Sibi Ventures
+    priority: high
+    channel: email
+    workspace: nonsibi
+    note: Marketing boss. Mail arrives in the work Gmail, which is not yet authorized.
 
 # Domains that are always real, never filtered, regardless of sender.
 never_filter_domains:
@@ -122,14 +132,16 @@ workspaces:
     subtitle: AI media internship
     accent: "#6D4AA6"          # purple — AI media
     accent_alt: "#9B7BC9"
-    match: []                  # no email domain yet — see people.knud
+    # An exact address outranks any domain rule, so Knud's tulane.edu mail
+    # lands here rather than in the Tulane workspace.
+    match: [kberthelsen@tulane.edu]
     links:
       - { label: "GroupMe", url: "https://web.groupme.com/chats" }
     panels: [groupme]
     note: >
-      AI media internship with Prof. Knud Betherlesen (Tulane). Primary channel
-      is GroupMe, which has no connector — messages are pasted in and logged to
-      data/groupme-log.md. See docs/canvas-and-groupme.md.
+      AI media internship with Prof. Knud Berthelsen (kberthelsen@tulane.edu).
+      Primary channel is GroupMe, which has no connector — messages are pasted
+      in and logged. See docs/canvas-and-groupme.md.
 
   - id: nonsibi
     name: Non Sibi
