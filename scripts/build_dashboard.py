@@ -457,6 +457,68 @@ a.row-subject:hover,a.row-subject:focus-visible{color:var(--tone); border-bottom
 .chip-warn .dot{background:var(--warn)} .chip-warn .chip-state{color:var(--warn)}
 .chip-critical .dot{background:var(--critical)} .chip-critical .chip-state{color:var(--critical)}
 
+/* ---- calendar ---- */
+.cal-nav{display:flex; gap:5px; flex-shrink:0}
+.cal-nav button,.add-btn,.layer,#cal-form button{font:inherit; font-size:12px; font-weight:600;
+  cursor:pointer; border:1px solid var(--line); background:var(--raise);
+  color:var(--ink-2); border-radius:7px; padding:4px 10px}
+.cal-nav button:hover,.add-btn:hover,#cal-form button:hover{border-color:var(--ink-2); color:var(--ink)}
+
+.layers{display:flex; flex-wrap:wrap; gap:6px; padding:11px 18px;
+  border-bottom:1px solid var(--line); align-items:center}
+.layer{display:inline-flex; align-items:center; gap:6px; border-radius:99px}
+.layer .swatch{width:9px; height:9px; border-radius:50%; background:var(--lc); flex-shrink:0}
+.layer[aria-pressed="true"]{border-color:var(--lc); color:var(--ink);
+  background:color-mix(in srgb,var(--lc) 8%,transparent)}
+.layer[aria-pressed="false"]{opacity:.45}
+.layer[aria-pressed="false"] .swatch{background:var(--muted)}
+.add-btn{margin-left:auto; border-style:dashed}
+
+#cal-form{padding:13px 18px; border-bottom:1px solid var(--line); background:var(--sunk);
+  display:flex; flex-direction:column; gap:9px}
+/* an author `display` beats the UA rule behind the hidden attribute */
+#cal-form[hidden]{display:none}
+.f-row{display:flex; gap:10px; flex-wrap:wrap}
+#cal-form label{display:flex; flex-direction:column; gap:3px; font-size:11px;
+  font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.06em}
+#cal-form .f-grow{flex:1; min-width:170px}
+#cal-form input,#cal-form select{font:inherit; font-size:13.5px; font-weight:400;
+  text-transform:none; letter-spacing:0; color:var(--ink); background:var(--raise);
+  border:1px solid var(--line); border-radius:6px; padding:5px 8px; min-width:0}
+#cal-form input:focus,#cal-form select:focus{outline:2px solid var(--tone); outline-offset:1px}
+#f-title{min-width:230px}
+.f-actions{display:flex; gap:7px; align-items:center}
+.btn-primary{background:var(--tone) !important; color:#fff !important; border-color:transparent !important}
+.btn-danger{color:var(--critical) !important; border-color:var(--critical) !important}
+#f-hint{font-size:11.5px; color:var(--muted)}
+
+.cal-grid{display:grid; grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:1px; background:var(--line); border-top:1px solid var(--line)}
+.dow{background:var(--sunk); padding:7px 8px; font-size:10px; font-weight:700;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--muted); text-align:center}
+.day{background:var(--raise); min-height:92px; padding:5px 6px; display:flex;
+  flex-direction:column; gap:3px; cursor:pointer; border:none; text-align:left; font:inherit}
+.day:hover{background:var(--sunk)}
+.day.other{background:var(--ground)}
+.day.other .day-n{color:var(--muted); opacity:.55}
+.day-n{font-family:ui-monospace,Menlo,monospace; font-size:11.5px; color:var(--ink-2);
+  font-variant-numeric:tabular-nums; align-self:flex-start}
+.day.today .day-n{background:var(--tone); color:#fff; border-radius:50%;
+  width:19px; height:19px; display:grid; place-items:center; font-weight:700}
+.ev{display:flex; align-items:center; gap:4px; font-size:11px; line-height:1.3;
+  padding:2px 5px; border-radius:4px; cursor:pointer; border:none; font-family:inherit;
+  text-align:left; width:100%; background:color-mix(in srgb,var(--ec) 13%,transparent);
+  color:var(--ink); border-left:2.5px solid var(--ec)}
+.ev:hover{background:color-mix(in srgb,var(--ec) 24%,transparent)}
+.ev-t{font-family:ui-monospace,Menlo,monospace; font-size:9.5px; color:var(--muted); flex-shrink:0}
+.ev-name{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.ev.ro{font-style:italic}
+@media (max-width:700px){
+  .day{min-height:64px}
+  .ev-name{font-size:10px}
+  .dow{font-size:9px; padding:5px 2px}
+}
+
 footer{color:var(--muted); font-size:11.5px; text-align:center; line-height:1.7}
 footer code{font-family:ui-monospace,Menlo,monospace; font-size:11px}
 :focus-visible{outline:2px solid var(--tone); outline-offset:2px; border-radius:3px}
@@ -499,7 +561,271 @@ JS = """
     paint(row);
   });
 })();
+
+// ---------------------------------------------------------------------------
+// Calendar: a month grid with one toggleable layer per workspace. Events you
+// add are stored in this browser; Canvas assignments arrive as read-only seed
+// data and are re-supplied on every rebuild rather than persisted.
+// ---------------------------------------------------------------------------
+(function () {
+  var grid = document.getElementById('cal-grid');
+  if (!grid) return;
+
+  var EVENTS_KEY = 'lbb.calendar.v1';
+  var HIDDEN_KEY = 'lbb.calendar.hidden.v1';
+  var DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                'August', 'September', 'October', 'November', 'December'];
+
+  function readJSON(id, fallback) {
+    var el = document.getElementById(id);
+    if (!el) return fallback;
+    try { return JSON.parse(el.textContent); } catch (err) { return fallback; }
+  }
+  function readStore(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (err) { return fallback; }
+  }
+  function write(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (err) { /* private mode */ }
+  }
+
+  var layers = readJSON('cal-layers', {});
+  var seed = readJSON('cal-seed', []);
+  var mine = readStore(EVENTS_KEY, []);
+  var hidden = new Set(readStore(HIDDEN_KEY, []));
+
+  var form = document.getElementById('cal-form');
+  var fTitle = document.getElementById('f-title');
+  var fLayer = document.getElementById('f-layer');
+  var fDate = document.getElementById('f-date');
+  var fTime = document.getElementById('f-time');
+  var fNote = document.getElementById('f-note');
+  var fDelete = document.getElementById('f-delete');
+  var fHint = document.getElementById('f-hint');
+  var editing = null;
+
+  var view = new Date();
+  view.setDate(1);
+
+  function ymd(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
+           '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function color(layer) { return (layers[layer] || {}).color || '#6E7266'; }
+
+  function visibleEvents() {
+    return seed.concat(mine).filter(function (ev) { return !hidden.has(ev.layer); });
+  }
+
+  function render() {
+    document.getElementById('cal-title').textContent = MONTHS[view.getMonth()] + ' ' + view.getFullYear();
+
+    var byDate = {};
+    visibleEvents().forEach(function (ev) {
+      (byDate[ev.date] = byDate[ev.date] || []).push(ev);
+    });
+
+    var first = new Date(view.getFullYear(), view.getMonth(), 1);
+    var start = new Date(first);
+    start.setDate(1 - first.getDay());          // back up to the Sunday on or before the 1st
+    var todayStr = ymd(new Date());
+
+    var html = DOW.map(function (d) { return '<div class="dow">' + d + '</div>'; }).join('');
+
+    for (var i = 0; i < 42; i++) {
+      var day = new Date(start);
+      day.setDate(start.getDate() + i);
+      var key = ymd(day);
+      var cls = 'day' + (day.getMonth() !== view.getMonth() ? ' other' : '') +
+                (key === todayStr ? ' today' : '');
+      var evs = (byDate[key] || []).slice().sort(function (a, b) {
+        return (a.time || '99:99').localeCompare(b.time || '99:99');
+      });
+
+      html += '<button type="button" class="' + cls + '" data-date="' + key + '">' +
+              '<span class="day-n">' + day.getDate() + '</span>' +
+              evs.map(function (ev) {
+                return '<span class="ev' + (ev.readonly ? ' ro' : '') + '" data-id="' + ev.id +
+                       '" style="--ec:' + color(ev.layer) + '" title="' + escapeAttr(ev.title) + '">' +
+                       (ev.time ? '<span class="ev-t">' + ev.time + '</span>' : '') +
+                       '<span class="ev-name">' + escapeHTML(ev.title) + '</span></span>';
+              }).join('') +
+              '</button>';
+    }
+    grid.innerHTML = html;
+  }
+
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  var escapeAttr = escapeHTML;
+
+  function openForm(ev, date) {
+    editing = ev || null;
+    form.hidden = false;
+    fTitle.value = ev ? ev.title : '';
+    fLayer.value = ev ? ev.layer : Object.keys(layers)[0];
+    fDate.value = ev ? ev.date : (date || ymd(new Date()));
+    fTime.value = ev ? (ev.time || '') : '';
+    fNote.value = ev ? (ev.note || '') : '';
+    var ro = !!(ev && ev.readonly);
+    fDelete.hidden = !ev || ro;
+    fHint.textContent = ro ? 'From Canvas — edit it in Canvas, not here.' : '';
+    [fTitle, fLayer, fDate, fTime, fNote].forEach(function (el) { el.disabled = ro; });
+    form.querySelector('.btn-primary').disabled = ro;
+    if (!ro) fTitle.focus();
+  }
+
+  function closeForm() {
+    form.hidden = true;
+    editing = null;
+    fHint.textContent = '';
+  }
+
+  grid.addEventListener('click', function (e) {
+    var evEl = e.target.closest('.ev');
+    if (evEl) {
+      var all = seed.concat(mine);
+      for (var i = 0; i < all.length; i++) {
+        if (all[i].id === evEl.dataset.id) { openForm(all[i]); return; }
+      }
+      return;
+    }
+    var dayEl = e.target.closest('.day');
+    if (dayEl) openForm(null, dayEl.dataset.date);
+  });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!fTitle.value.trim()) return;
+    if (editing && !editing.readonly) {
+      editing.title = fTitle.value.trim();
+      editing.layer = fLayer.value;
+      editing.date = fDate.value;
+      editing.time = fTime.value;
+      editing.note = fNote.value.trim();
+    } else if (!editing) {
+      mine.push({
+        id: 'e' + Date.now() + Math.random().toString(36).slice(2, 7),
+        title: fTitle.value.trim(), layer: fLayer.value, date: fDate.value,
+        time: fTime.value, note: fNote.value.trim()
+      });
+    }
+    write(EVENTS_KEY, mine);
+    closeForm();
+    render();
+  });
+
+  fDelete.addEventListener('click', function () {
+    if (!editing) return;
+    mine = mine.filter(function (ev) { return ev.id !== editing.id; });
+    write(EVENTS_KEY, mine);
+    closeForm();
+    render();
+  });
+
+  document.getElementById('f-cancel').addEventListener('click', closeForm);
+  document.getElementById('cal-add').addEventListener('click', function () { openForm(null, null); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !form.hidden) closeForm();
+  });
+
+  document.getElementById('cal-prev').addEventListener('click', function () {
+    view.setMonth(view.getMonth() - 1); render();
+  });
+  document.getElementById('cal-next').addEventListener('click', function () {
+    view.setMonth(view.getMonth() + 1); render();
+  });
+  document.getElementById('cal-today').addEventListener('click', function () {
+    view = new Date(); view.setDate(1); render();
+  });
+
+  document.querySelectorAll('.layer').forEach(function (btn) {
+    var id = btn.dataset.layer;
+    btn.setAttribute('aria-pressed', hidden.has(id) ? 'false' : 'true');
+    btn.addEventListener('click', function () {
+      if (hidden.has(id)) { hidden.delete(id); } else { hidden.add(id); }
+      btn.setAttribute('aria-pressed', hidden.has(id) ? 'false' : 'true');
+      write(HIDDEN_KEY, Array.from(hidden));
+      render();
+    });
+  });
+
+  render();
+})();
 """
+
+
+def calendar_section(spaces: list[dict], canvas_events: list[dict]) -> str:
+    """Month grid with one toggleable, editable layer per workspace.
+
+    Layer definitions and Canvas seed events are handed to the browser as JSON
+    script tags rather than interpolated into the JS, so config stays the
+    source of truth for colors and nothing needs escaping twice.
+    """
+    layers = {
+        s["id"]: {"name": s["name"], "color": s.get("accent", "#6E7266")} for s in spaces
+    }
+    seed = [
+        {
+            "id": f"canvas:{ev.get('uid') or i}",
+            "title": ev.get("title", ""),
+            "date": (ev.get("due") or "")[:10],
+            "time": (ev.get("due") or "")[11:16],
+            "layer": "tulane",
+            "readonly": True,
+        }
+        for i, ev in enumerate(canvas_events)
+        if (ev.get("due") or "")[:10]
+    ]
+
+    toggles = "".join(
+        f'<button type="button" class="layer" data-layer="{e(lid)}" aria-pressed="true" '
+        f'style="--lc:{e(meta["color"])}"><span class="swatch"></span>{e(meta["name"])}</button>'
+        for lid, meta in layers.items()
+    )
+    options = "".join(
+        f'<option value="{e(lid)}">{e(meta["name"])}</option>' for lid, meta in layers.items()
+    )
+
+    return f"""<section id="calendar" style="--tone-raw:#4A5568">
+    <div class="sec-head">
+      <div class="sec-title"><h2>Calendar</h2><span class="who-for" id="cal-title"></span></div>
+      <div class="cal-nav">
+        <button type="button" id="cal-prev" aria-label="Previous month">&#8249;</button>
+        <button type="button" id="cal-today">Today</button>
+        <button type="button" id="cal-next" aria-label="Next month">&#8250;</button>
+      </div>
+    </div>
+
+    <div class="layers">{toggles}<button type="button" id="cal-add" class="add-btn">+ Add</button></div>
+
+    <form id="cal-form" hidden>
+      <div class="f-row">
+        <label>Title<input type="text" id="f-title" required maxlength="120" placeholder="e.g. ECON 3010 lecture"></label>
+        <label>Layer<select id="f-layer">{options}</select></label>
+      </div>
+      <div class="f-row">
+        <label>Date<input type="date" id="f-date" required></label>
+        <label>Time<input type="time" id="f-time"></label>
+        <label class="f-grow">Note<input type="text" id="f-note" maxlength="200" placeholder="optional"></label>
+      </div>
+      <div class="f-actions">
+        <button type="submit" class="btn-primary">Save</button>
+        <button type="button" id="f-cancel">Cancel</button>
+        <button type="button" id="f-delete" class="btn-danger" hidden>Delete</button>
+        <span id="f-hint"></span>
+      </div>
+    </form>
+
+    <div class="cal-grid" id="cal-grid"></div>
+    <p class="sec-note">Events you add live in this browser. Canvas assignments appear on the
+    Tulane layer automatically and can't be edited here &mdash; change those in Canvas.</p>
+  </section>
+  <script type="application/json" id="cal-layers">{json.dumps(layers)}</script>
+  <script type="application/json" id="cal-seed">{json.dumps(seed)}</script>"""
 
 
 def workspace_section(space: dict, items: list[dict], panels_html: str, subtitle: str) -> str:
@@ -590,6 +916,8 @@ def build() -> str:
   </header>
 
   {meter}
+
+  {calendar_section(spaces, canvas.get("events", []))}
 
   {"".join(sections)}
 
