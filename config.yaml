@@ -123,7 +123,7 @@ workspaces:
     links:
       - { label: "Gibson Online",  url: "https://gibson.tulane.edu/" }
       - { label: "Class Schedule", url: "https://classschedule.tulane.edu/Search.aspx" }
-      - { label: "Canvas",         url: "https://tulane.instructure.com/", confirm: true }
+      - { label: "Canvas",         url: "https://tulane.instructure.com/" }
       - { label: "Outlook",        url: "https://outlook.office.com/mail/" }
     panels: [due, docs]
 
