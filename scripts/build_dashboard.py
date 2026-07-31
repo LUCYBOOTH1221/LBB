@@ -159,8 +159,13 @@ def compose_url(item: dict) -> str:
     return f"https://mail.google.com/mail/?{params}"
 
 
-def mail_rows(items: list[dict]) -> str:
-    """Each row carries Seen / Replied toggles plus a Draft action."""
+def mail_rows(items: list[dict], section_id: str = "") -> str:
+    """Each row carries Seen / Replied toggles plus a Draft action.
+
+    Marking Seen files the row out of sight rather than merely dimming it --
+    the point of the button is to clear the screen. Nothing is destroyed: a
+    trailing bar reports how many are hidden and brings them back.
+    """
     if not items:
         return empty("Nothing waiting here.")
     out = []
@@ -199,7 +204,13 @@ def mail_rows(items: list[dict]) -> str:
   </div>
 </li>"""
         )
-    return f'<ul class="rows">{"".join(out)}</ul>'
+    sid = e(section_id)
+    return (
+        f'<ul class="rows" data-section="{sid}">{"".join(out)}</ul>'
+        f'<div class="all-clear" data-section="{sid}" hidden>All caught up &#10024;</div>'
+        f'<div class="seen-bar" data-section="{sid}" hidden>'
+        f'<button type="button" class="show-seen"></button></div>'
+    )
 
 
 def panel(title: str, body: str, count: str = "") -> str:
@@ -485,12 +496,13 @@ a.row-subject:hover,a.row-subject:focus-visible{color:var(--tone)}
 .act[aria-pressed="true"]{border-color:transparent}
 .act-seen[aria-pressed="true"]{background:var(--sunk); color:var(--ink-2)}
 .act-replied[aria-pressed="true"]{background:var(--calm-bg); color:var(--calm)}
-.act[aria-pressed="true"]::before{content:"\2713\00a0"}
+.act[aria-pressed="true"]::before{content:"✓ "}
 a.act{text-decoration:none; display:inline-flex; align-items:center}
 .act-draft{color:var(--tone); border-color:color-mix(in srgb,var(--tone) 30%,transparent)}
 .act-draft:hover{background:var(--tone-soft); border-color:var(--tone); color:var(--tone)}
 .act-draft.has-draft{background:var(--tone-soft); border-color:var(--tone); font-weight:800}
-.act-draft.has-draft::before{content:"\2709\00a0"}
+.act-draft.has-draft::before{content:"✉ "}
+.row[hidden]{display:none}
 .row.done-seen{background:var(--sunk); opacity:.72}
 .row.done-seen .who{color:var(--muted); font-weight:600}
 .row.done-seen .row-subject{color:var(--muted)}
@@ -605,6 +617,15 @@ a.act{text-decoration:none; display:inline-flex; align-items:center}
   .cal-grid{gap:3px}
 }
 
+.seen-bar{padding:2px 16px 14px}
+.seen-bar[hidden]{display:none}
+.show-seen{font:inherit; font-size:11.5px; font-weight:700; cursor:pointer;
+  color:var(--muted); background:none; border:none; padding:5px 8px; border-radius:99px}
+.show-seen:hover{color:var(--tone); background:var(--tone-soft)}
+.all-clear{padding:22px 18px 24px; text-align:center; font-size:14px;
+  font-weight:700; color:var(--tone)}
+.all-clear[hidden]{display:none}
+
 footer{color:var(--muted); font-size:11.5px; text-align:center; line-height:1.8}
 footer code{font-size:11px}
 :focus-visible{outline:2px solid var(--tone); outline-offset:2px; border-radius:6px}
@@ -623,6 +644,11 @@ JS = """
     try { localStorage.setItem(KEY, JSON.stringify(marks)); } catch (err) { /* private mode */ }
   }
 
+  // Which sections are currently revealing their filed rows.
+  var REVEAL_KEY = 'lbb.reveal.v1';
+  var revealed = {};
+  try { revealed = JSON.parse(localStorage.getItem(REVEAL_KEY)) || {}; } catch (err) { revealed = {}; }
+
   function paint(row) {
     var state = marks[row.dataset.id] || {};
     row.classList.toggle('done-seen', !!state.seen);
@@ -632,7 +658,53 @@ JS = """
     });
   }
 
+  /* Hide filed rows, keep the counts honest, and surface the way back. */
+  function refresh(section) {
+    var list = document.querySelector('.rows[data-section="' + section + '"]');
+    if (!list) return;
+    var rows = list.querySelectorAll('.row[data-id]');
+    var show = !!revealed[section];
+    var filed = 0;
+
+    rows.forEach(function (row) {
+      var isFiled = row.classList.contains('done-seen');
+      if (isFiled) filed++;
+      row.hidden = isFiled && !show;
+    });
+
+    var bar = document.querySelector('.seen-bar[data-section="' + section + '"]');
+    if (bar) {
+      bar.hidden = filed === 0;
+      bar.querySelector('.show-seen').textContent =
+        (show ? 'Hide ' : 'Show ') + filed + ' filed';
+    }
+
+    var clear = document.querySelector('.all-clear[data-section="' + section + '"]');
+    if (clear) clear.hidden = !(rows.length > 0 && filed === rows.length && !show);
+
+    // The header badge should count what's actually left to deal with.
+    var head = list.closest('section');
+    var badge = head && head.querySelector('.sec-head .count');
+    if (badge) badge.textContent = rows.length - filed;
+  }
+
+  function refreshAll() {
+    document.querySelectorAll('.rows[data-section]').forEach(function (list) {
+      refresh(list.dataset.section);
+    });
+  }
+
   document.querySelectorAll('.row[data-id]').forEach(paint);
+  refreshAll();
+
+  document.addEventListener('click', function (ev) {
+    var toggle = ev.target.closest('.show-seen');
+    if (!toggle) return;
+    var section = toggle.closest('.seen-bar').dataset.section;
+    revealed[section] = !revealed[section];
+    try { localStorage.setItem(REVEAL_KEY, JSON.stringify(revealed)); } catch (err) { /* private mode */ }
+    refresh(section);
+  });
 
   document.addEventListener('click', function (ev) {
     var btn = ev.target.closest('.act');
@@ -645,6 +717,8 @@ JS = """
     if (act === 'replied' && marks[id].replied) marks[id].seen = true;  // replying implies seen
     save();
     paint(row);
+    var list = row.closest('.rows[data-section]');
+    if (list) refresh(list.dataset.section);
   });
 })();
 
@@ -947,7 +1021,7 @@ def workspace_section(space: dict, items: list[dict], panels_html: str, subtitle
       <span class="count">{len(items)}</span>
     </div>
     {links_bar(space.get('links') or [])}
-    {mail_rows(items)}
+    {mail_rows(items, space['id'])}
     {panels}
     {note}
   </section>"""
