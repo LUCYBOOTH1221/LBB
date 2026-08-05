@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns='http://www.w3.org/2005/Atom' xmlns:apps='http://schemas.google.com/apps/2006'>
+  <title>LBB mail filters</title>
+  <entry>
+    <category term='filter'></category>
+    <title>Mail Filter</title>
+    <apps:property name='from' value='{bbiern@sf.wish.org betsyb1115@yahoo.com kberthelsen@tulane.edu kent@nonsibi.vc *@tulane.edu *@american.edu *@sf.wish.org *@nonsibi.vc}'/>
+    <apps:property name='shouldAlwaysMarkAsImportant' value='true'/>
+    <apps:property name='shouldNeverSpam' value='true'/>
+  </entry>
+  <entry>
+    <category term='filter'></category>
+    <title>Mail Filter</title>
+    <apps:property name='from' value='{discover@services.discover.com}'/>
+    <apps:property name='label' value='Receipts/Transactions'/>
+    <apps:property name='shouldArchive' value='true'/>
+    <apps:property name='shouldMarkAsRead' value='true'/>
+    <apps:property name='shouldNeverMarkAsImportant' value='true'/>
+  </entry>
+  <entry>
+    <category term='filter'></category>
+    <title>Mail Filter</title>
+    <apps:property name='from' value='{noreply@uber.com}'/>
+    <apps:property name='label' value='Receipts/Transactions'/>
+    <apps:property name='shouldArchive' value='true'/>
+    <apps:property name='shouldMarkAsRead' value='true'/>
+    <apps:property name='shouldNeverMarkAsImportant' value='true'/>
+  </entry>
+  <entry>
+    <category term='filter'></category>
+    <title>Mail Filter</title>
+    <apps:property name='from' value='{customerservice@loveshackfancy.com concierge@ebdenim.com contact@dollskill.com hello@cultgaia.com support@frankiesbikinis.com reminder@emails.gilt.com hello@mail.olivela.com info@260samplesale.com thredup@email.thredup.com email@e.therealreal.com news@mail.grailed.com info@send.jadedldn.com customerservice@splits59.com newsletter@email.barenecessities.com hi@kule.com jcrewfactory@mail.jcrew.com email@email.savagex.com customercare@shopdoen.com no-reply@golausa.com photo@mystore.cvs.com}'/>
+    <apps:property name='label' value='Shopping &amp; Promos'/>
+    <apps:property name='shouldArchive' value='true'/>
+    <apps:property name='shouldMarkAsRead' value='true'/>
+    <apps:property name='shouldNeverMarkAsImportant' value='true'/>
+  </entry>
+  <entry>
+    <category term='filter'></category>
+    <title>Mail Filter</title>
+    <apps:property name='from' value='{funhogs@na.patagonia.com contact@laseraway.com hello@eaze.com uber@uber.com ubereats@uber.com}'/>
+    <apps:property name='label' value='Shopping &amp; Promos'/>
+    <apps:property name='shouldArchive' value='true'/>
+    <apps:property name='shouldMarkAsRead' value='true'/>
+    <apps:property name='shouldNeverMarkAsImportant' value='true'/>
+  </entry>
+  <entry>
+    <category term='filter'></category>
+    <title>Mail Filter</title>
+    <apps:property name='from' value='{hello@interestingfacts.com newyorker@newsletter.newyorker.com info@nl.mail.washingtonpost.com newsdigest@insideapple.apple.com vogue@eml.condenast.com newsletters-noreply@linkedin.com andoverbookstore@shelf-awareness.com matt@ststephensorinda.org info@news.thefork.fr hello@loyalsnap.com newsletter@lifecycle.quizlet.com hello@mail.grammarly.com}'/>
+    <apps:property name='label' value='Newsletters &amp; News'/>
+    <apps:property name='shouldArchive' value='true'/>
+    <apps:property name='shouldNeverMarkAsImportant' value='true'/>
+  </entry>
+  <entry>
+    <category term='filter'></category>
+    <title>Mail Filter</title>
+    <apps:property name='from' value='{jobalerts-noreply@linkedin.com linkedin@em.linkedin.com no-reply@idealist.org}'/>
+    <apps:property name='label' value='Internships &amp; Career'/>
+    <apps:property name='shouldArchive' value='true'/>
+    <apps:property name='shouldNeverMarkAsImportant' value='true'/>
+  </entry>
+  <entry>
+    <category term='filter'></category>
+    <title>Mail Filter</title>
+    <apps:property name='from' value='{no_reply@email.apple.com noreply-accounts@google.com no-reply@accounts.google.com support@wispr.ai hello@mail.wispr.ai}'/>
+    <apps:property name='label' value='Receipts/Transactions'/>
+    <apps:property name='shouldArchive' value='true'/>
+    <apps:property name='shouldMarkAsRead' value='true'/>
+    <apps:property name='shouldNeverMarkAsImportant' value='true'/>
+  </entry>
+</feed>

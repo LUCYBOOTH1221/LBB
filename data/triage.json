@@ -1,0 +1,96 @@
+{
+  "_comment": "Seeded 2026-07-29 from real threads found on lbb122104@gmail.com. The agent rewrites this file on each daily brief. Fields: id (Gmail thread id), from, name, subject, received (ISO), lane (reply|watch), reason, unread.",
+  "generated_at": "2026-07-29T20:35:00Z",
+  "source": "seed",
+  "inbox_stats": {
+    "messages": 73969,
+    "unread": 72517,
+    "threads": 73088,
+    "sent_all_time": 341
+  },
+  "items": [
+    {
+      "id": "19f9ba134f22448a",
+      "from": "bbiern@sf.wish.org",
+      "name": "Betsy Biern",
+      "org": "Make-A-Wish Greater Bay Area",
+      "subject": "Chez panisse",
+      "received": "2026-07-25T23:34:17Z",
+      "lane": "reply",
+      "reason": "VIP sender, unread, addressed to you directly",
+      "unread": true
+    },
+    {
+      "id": "19f856d560cf77e6",
+      "from": "bbiern@sf.wish.org",
+      "name": "Betsy Biern",
+      "org": "Make-A-Wish Greater Bay Area",
+      "subject": "FW: Lula Cellars Order Receipt - for Aurora's family",
+      "received": "2026-07-21T16:06:00Z",
+      "lane": "reply",
+      "reason": "VIP sender, unread, CCs your Tulane address",
+      "unread": true
+    },
+    {
+      "id": "19f5c63e3326396d",
+      "from": "bbiern@sf.wish.org",
+      "name": "Betsy Biern",
+      "org": "Make-A-Wish Greater Bay Area",
+      "subject": "FW: Lula Cellars Order Receipt - for AURORA's family",
+      "received": "2026-07-13T16:51:08Z",
+      "lane": "reply",
+      "reason": "VIP sender, unread, contains an explicit instruction",
+      "unread": true
+    },
+    {
+      "id": "19f9ba0460ddd0e9",
+      "from": "betsyb1115@yahoo.com",
+      "name": "Betsy",
+      "subject": "Fw: Your reservation at Café Chez Panisse is confirmed",
+      "received": "2026-07-25T23:33:12Z",
+      "lane": "reply",
+      "reason": "VIP sender, unread",
+      "unread": true
+    },
+    {
+      "id": "19f85b1174d149b5",
+      "from": "betsyb1115@yahoo.com",
+      "name": "Betsy",
+      "subject": "Fw: The conversation Q&A is in session",
+      "received": "2026-07-21T17:19:57Z",
+      "lane": "reply",
+      "reason": "Contains a direct ask: \"Ask dad for his login for master class\"",
+      "unread": false
+    },
+    {
+      "id": "19fa96430c2e725d",
+      "from": "washsem@sfmc.american.edu",
+      "name": "AU Washington Semester Program",
+      "subject": "This week: DC Employer + WSP Info Sessions!",
+      "received": "2026-07-28T15:41:52Z",
+      "lane": "watch",
+      "reason": "Protected domain, addressed \"Dear Lucy\", time-boxed events",
+      "unread": true
+    },
+    {
+      "id": "19f8a44c984e4df8",
+      "from": "washsem@sfmc.american.edu",
+      "name": "AU Washington Semester Program",
+      "subject": "Upcoming Events: Careers in Congress info session + more!",
+      "received": "2026-07-22T14:37:49Z",
+      "lane": "watch",
+      "reason": "Protected domain, event deadlines",
+      "unread": true
+    },
+    {
+      "id": "19f6770134c3a90a",
+      "from": "romneypilates@gmail.com",
+      "name": "Romney Pilates",
+      "subject": "Important Update: Megaformer Classes 7/15",
+      "received": "2026-07-15T20:20:23Z",
+      "lane": "watch",
+      "reason": "Human sender, schedule change",
+      "unread": false
+    }
+  ]
+}

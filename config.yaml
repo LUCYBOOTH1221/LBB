@@ -1,0 +1,326 @@
+# -----------------------------------------------------------------------------
+# LBB — Senior Year Command Center
+# Single source of truth. Everything else reads from this file.
+#
+# Lines marked CONFIRM: were inferred from observed mail traffic on
+# lbb122104@gmail.com and have NOT been verified. Correct them before relying
+# on any routing rule that depends on them.
+# -----------------------------------------------------------------------------
+
+owner:
+  name: Lucy Booth
+  school: Tulane University
+  year: senior
+  term: Fall 2026
+
+# ---------------------------------------------------------------------------
+# ACCOUNTS
+#
+# status: live      = Claude can read it right now via a connector
+#         manual    = no connector exists; data arrives by paste/export/feed
+#         blocked   = connector exists but is not authorized yet
+# ---------------------------------------------------------------------------
+accounts:
+  personal_gmail:
+    address: lbb122104@gmail.com
+    status: live
+    connector: Gmail
+    role: Personal life, shopping, finance, family, job alerts.
+    volume: { messages: 73969, unread: 72517 }   # measured 2026-07-29
+
+  school_outlook:
+    address: lbooth1@tulane.edu           # CONFIRM: seen as a CC target, not verified as the Outlook box
+    status: blocked
+    connector: Microsoft 365
+    role: Classes, registrar, advisor, campus admin.
+    note: >
+      Requires authorizing the Microsoft 365 connector on claude.ai. Grants
+      read-only search over Outlook mail + calendar and Teams messages. There
+      is no write access, so Outlook cleanup must be done with Outlook Rules
+      (see mail/outlook-rules.md), not by the agent.
+
+  work_gmail:
+    address: lucy@nonsibi.vc
+    status: blocked
+    connector: Gmail
+    role: Non Sibi Ventures — marketing. Second boss.
+    note: >
+      HARD LIMIT: the Gmail connector authorizes exactly one Google account.
+      Personal Gmail currently holds that slot. Two Gmail accounts cannot both
+      be live at once. See docs/two-gmail-problem.md for the three workarounds.
+
+# ---------------------------------------------------------------------------
+# PEOPLE — the allowlist that drives "urgent headlines"
+#
+# Anything from a `priority: high` address skips every filter, stays in the
+# inbox, and surfaces at the top of the dashboard. This list is the single
+# most important thing in the repo: it is what stops a boss email from being
+# buried under 70,000 promos.
+# ---------------------------------------------------------------------------
+people:
+  - handle: betsy-work
+    address: bbiern@sf.wish.org
+    org: Make-A-Wish Greater Bay Area
+    title: CEO
+    priority: high
+    channel: email
+    # CONFIRM: appears to be the non-profit / marketing side. Is this "boss #2"?
+    note: Sends forwarded receipts and vendor coordination; often CCs lbooth1@tulane.edu.
+
+  - handle: betsy-personal
+    address: betsyb1115@yahoo.com
+    priority: high
+    channel: email
+    # CONFIRM: same first name as betsy-work, but mails the Booth family
+    # (tedbooth7@hotmail.com, charlieb2404@icloud.com). Same person wearing two
+    # hats, or two different people? This changes whether her mail is "work".
+    note: Family thread traffic. Relationship unverified.
+
+  - handle: knud
+    name: Knud Berthelsen
+    address: kberthelsen@tulane.edu
+    org: Tulane University
+    title: Professor
+    priority: high
+    channel: [groupme, email]
+    workspace: claude
+    note: >
+      Supervises the AI media internship. His address is @tulane.edu, which the
+      Tulane workspace also claims — routing resolves exact addresses before
+      domains, so his mail lands in Claude. GroupMe remains the primary channel
+      and has no connector.
+
+  - handle: kent
+    name: Kent Lucas
+    address: kent@nonsibi.vc            # CONFIRM: given as "kent@nonsibi"; .vc assumed
+    org: Non Sibi Ventures
+    priority: high
+    channel: email
+    workspace: nonsibi
+    note: Marketing boss. Mail arrives in the work Gmail, which is not yet authorized.
+
+# Domains that are always real, never filtered, regardless of sender.
+never_filter_domains:
+  - tulane.edu
+  - american.edu
+  - sf.wish.org
+  - nonsibi.vc
+
+# ---------------------------------------------------------------------------
+# WORKSPACES — the three spaces the dashboard is divided into. Each renders as
+# its own section with its own accent, quick links, and mail lane.
+#
+# `match` routes a message into a space by sender domain. Unmatched mail falls
+# through to the space with `default: true`.
+# ---------------------------------------------------------------------------
+workspaces:
+  - id: tulane
+    name: Tulane
+    subtitle: School
+    accent: "#006747"          # Tulane green
+    accent_alt: "#418FDE"      # Tulane sky blue
+    match: [tulane.edu, american.edu, instructure.com]
+    links:
+      - { label: "Gibson Online",  url: "https://gibson.tulane.edu/" }
+      - { label: "Class Schedule", url: "https://classschedule.tulane.edu/Search.aspx" }
+      - { label: "Canvas",         url: "https://tulane.instructure.com/" }
+      - { label: "Outlook",        url: "https://outlook.office.com/mail/" }
+    panels: [due, docs]
+
+  - id: claude
+    name: Claude
+    subtitle: AI media internship
+    accent: "#6D4AA6"          # purple — AI media
+    accent_alt: "#9B7BC9"
+    # An exact address outranks any domain rule, so Knud's tulane.edu mail
+    # lands here rather than in the Tulane workspace.
+    match: [kberthelsen@tulane.edu]
+    links:
+      - { label: "GroupMe", url: "https://web.groupme.com/chats" }
+    panels: [groupme]
+    note: >
+      AI media internship with Prof. Knud Berthelsen (kberthelsen@tulane.edu).
+      Primary channel is GroupMe, which has no connector — messages are pasted
+      in and logged. See docs/canvas-and-groupme.md.
+
+  - id: nonsibi
+    name: Non Sibi
+    subtitle: Marketing
+    accent: "#2A4FC9"          # royal blue — Non Sibi brand
+    accent_alt: "#6E8BE0"
+    match: [nonsibi.vc]
+    links:
+      - { label: "Marketing Dashboard", url: "https://nonsibi-dashboard.netlify.app/" }
+      - { label: "Content Calendar",    url: "https://docs.google.com/spreadsheets/d/1hzvFhNAaScWUB7aQnr3-9juucc5L4ZPwQPXdUGSdElE/edit" }
+      - { label: "Non Sibi",            url: "https://nonsibi.vc/" }
+      - { label: "LinkedIn",            url: "https://www.linkedin.com/feed/" }
+    panels: [calendar]
+
+  - id: personal
+    name: Personal
+    subtitle: Everything else
+    accent: "#B0603A"          # clay — distinct from the other three on the calendar
+    accent_alt: "#C98A5E"
+    default: true
+    match: []
+    panels: []
+
+# ---------------------------------------------------------------------------
+# INTEGRATIONS — external systems the dashboard reads from.
+#
+# NO KEYS IN THIS FILE. It is committed. Secrets go in .env, which is not.
+# ---------------------------------------------------------------------------
+integrations:
+  supabase:
+    url: https://mlrfmahsmjwtcozlxlyo.supabase.co
+    table: calendar
+    # Two different keys, two very different risk profiles:
+    #
+    #   service_role  full read/write, BYPASSES Row Level Security.
+    #                 Belongs only in Apps Script Properties, where it already
+    #                 is. Never in this repo, never in a browser, never in a
+    #                 page anyone else can view-source.
+    #
+    #   anon          the publishable key, meant to be shipped to browsers.
+    #                 Safe there ONLY if RLS is enabled on the calendar table
+    #                 with a select-only policy.
+    #
+    # scripts/fetch_nonsibi.py runs server-side and will use either, preferring
+    # SUPABASE_ANON_KEY. The browser path uses the anon key exclusively.
+    env_key_server: SUPABASE_ANON_KEY      # falls back to SUPABASE_SERVICE_KEY
+    env_key_browser: SUPABASE_ANON_KEY
+    source_of_truth: >
+      A Google Sheet, synced to Supabase by an Apps Script (AllInOne.gs) on
+      every edit plus a 15-minute backstop. Supabase is a read replica —
+      edit the Sheet, never the table.
+
+  netlify:
+    dashboard: https://nonsibi-dashboard.netlify.app/
+
+  sheet:
+    id: 1hzvFhNAaScWUB7aQnr3-9juucc5L4ZPwQPXdUGSdElE
+    tab: Calendar
+
+# ---------------------------------------------------------------------------
+# NON SIBI TEAM — mirrors the TEAM map in AllInOne.gs. The Apps Script resolves
+# "Posting from" cells against this to decide who gets nudged.
+# ---------------------------------------------------------------------------
+team:
+  nonsibi:
+    - { name: Kent,    email: kent@nonsibi.vc, role: boss }
+    - { name: Camille, email: camille@nonsibi.vc }
+    - { name: Andrea,  email: andrea@nonsibi.vc }
+    - { name: Auny,    email: auny@nonsibi.vc }
+    - { name: Maria,   email: maria@nonsibi.vc }
+    - { name: Lucy,    email: lucy@nonsibi.vc, role: owner }
+
+# ---------------------------------------------------------------------------
+# BRAND — Tulane's official colors, used to accent the Tulane section.
+# CONFIRM: taken from the widely published brand palette, not the style guide
+# PDF. Correct these if Communications specifies different values.
+# ---------------------------------------------------------------------------
+brand:
+  tulane_green: "#006747"
+  tulane_blue: "#418FDE"
+
+# ---------------------------------------------------------------------------
+# CLASSES — fill in once Fall 2026 registration is final.
+# `tag` becomes the Gmail label suffix and the dashboard column.
+# ---------------------------------------------------------------------------
+classes: []
+  # - tag: POLS-4010
+  #   name: Senior Seminar in Political Science
+  #   canvas_course_id: null
+  #   meets: [Tue, Thu]
+  #   professor: null
+
+# ---------------------------------------------------------------------------
+# NOISE — the actual top offenders, measured from a 90-day sample.
+# Ranked by observed volume. This ordering drives mail/filters.md.
+# ---------------------------------------------------------------------------
+noise:
+  # #1 by a wide margin. Discover fires one alert per transaction, including
+  # $3.00 subway taps and $4.75 coffees. This single sender plausibly accounts
+  # for a five-figure share of the 72k unread.
+  transaction_alerts:
+    - discover@services.discover.com
+
+  # Uber sends TWO emails per trip: a "charge summary" and then a near-identical
+  # "thanks for riding" receipt ~11 hours later. Doubling the noise for one ride.
+  duplicate_receipts:
+    - noreply@uber.com
+
+  retail:
+    - customerservice@loveshackfancy.com
+    - concierge@ebdenim.com
+    - contact@dollskill.com
+    - hello@cultgaia.com
+    - support@frankiesbikinis.com
+    - reminder@emails.gilt.com
+    - hello@mail.olivela.com
+    - info@260samplesale.com
+    - thredup@email.thredup.com
+    - email@e.therealreal.com
+    - news@mail.grailed.com
+    - info@send.jadedldn.com
+    - customerservice@splits59.com
+    - newsletter@email.barenecessities.com
+    - hi@kule.com
+    - jcrewfactory@mail.jcrew.com
+    - email@email.savagex.com
+    - customercare@shopdoen.com
+    - no-reply@golausa.com
+    - photo@mystore.cvs.com
+    - funhogs@na.patagonia.com
+    - contact@laseraway.com
+    - hello@eaze.com
+    - uber@uber.com          # Uber Eats marketing, distinct from receipts
+    - ubereats@uber.com
+
+  newsletters:
+    - hello@interestingfacts.com
+    - newyorker@newsletter.newyorker.com
+    - info@nl.mail.washingtonpost.com
+    - newsdigest@insideapple.apple.com
+    - vogue@eml.condenast.com
+    - newsletters-noreply@linkedin.com
+    - andoverbookstore@shelf-awareness.com
+    - matt@ststephensorinda.org
+    - info@news.thefork.fr
+    - hello@loyalsnap.com
+    - newsletter@lifecycle.quizlet.com
+    - hello@mail.grammarly.com
+
+  job_alerts:
+    - jobalerts-noreply@linkedin.com
+    - linkedin@em.linkedin.com
+    - no-reply@idealist.org
+
+  # Genuinely useful but not urgent — route to a label, keep out of the inbox.
+  transactional:
+    - no_reply@email.apple.com
+    - noreply-accounts@google.com
+    - no-reply@accounts.google.com
+    - support@wispr.ai
+    - hello@mail.wispr.ai
+
+# ---------------------------------------------------------------------------
+# LABEL TAXONOMY
+# The five labels below already exist in Gmail with 0 messages applied —
+# a scaffold someone built and never used. These IDs are real.
+# ---------------------------------------------------------------------------
+labels:
+  existing:
+    - { id: Label_7, name: "Important & Action Needed", color: "#fb4c2f" }
+    - { id: Label_3, name: "Internships & Career",      color: "#1c4587" }
+    - { id: Label_4, name: "Finance & Banking",         color: "#16a765" }
+    - { id: Label_5, name: "Newsletters & News",        color: "#8e63ce" }
+    - { id: Label_6, name: "Shopping & Promos",         color: "#e07798" }
+    - { id: Label_1, name: "Notes" }
+    - { id: Label_2, name: "tenacity" }
+  proposed:
+    - "School/Canvas"
+    - "School/Registrar"
+    - "Work/Make-A-Wish"
+    - "Work/Marketing"
+    - "Receipts/Transactions"
