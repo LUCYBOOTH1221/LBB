@@ -40,7 +40,7 @@ ENV = ROOT / ".env"
 def load_env() -> None:
     if not ENV.exists():
         return
-    for line in ENV.read_text().splitlines():
+    for line in ENV.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
@@ -51,7 +51,7 @@ def load_env() -> None:
 def config() -> dict:
     import yaml
 
-    cfg = yaml.safe_load((ROOT / "config.yaml").read_text()) or {}
+    cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8")) or {}
     supa = (cfg.get("integrations") or {}).get("supabase") or {}
     if not supa.get("url"):
         sys.exit("integrations.supabase.url is not set in config.yaml")
@@ -163,7 +163,8 @@ def main() -> None:
                 "items": items,
             },
             indent=2,
-        )
+        ),
+        encoding="utf-8",
     )
 
     pending = sum(1 for i in items if not i["live"])

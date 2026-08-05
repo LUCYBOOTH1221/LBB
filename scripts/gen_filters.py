@@ -31,7 +31,7 @@ def load_config() -> dict:
         import yaml
     except ImportError:
         sys.exit("PyYAML is required:  pip install pyyaml")
-    with CONFIG.open() as fh:
+    with CONFIG.open(encoding="utf-8") as fh:
         return yaml.safe_load(fh)
 
 
@@ -139,7 +139,7 @@ def main() -> None:
         return
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(feed)
+    OUT.write_text(feed, encoding="utf-8")
     print(f"\nWrote {OUT.relative_to(ROOT)}")
     print("Import at: Gmail > Settings > Filters and Blocked Addresses > Import filters")
 

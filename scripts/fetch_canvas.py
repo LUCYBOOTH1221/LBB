@@ -30,7 +30,7 @@ def load_env() -> None:
     """Minimal .env reader so there's no python-dotenv dependency."""
     if not ENV.exists():
         return
-    for line in ENV.read_text().splitlines():
+    for line in ENV.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
@@ -128,7 +128,7 @@ def load_classes() -> list[dict]:
         import yaml
     except ImportError:
         return []
-    cfg = yaml.safe_load((ROOT / "config.yaml").read_text()) or {}
+    cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8")) or {}
     return cfg.get("classes") or []
 
 
@@ -138,7 +138,7 @@ def main() -> None:
     args = ap.parse_args()
 
     if args.file:
-        raw = Path(args.file).read_text()
+        raw = Path(args.file).read_text(encoding="utf-8")
     else:
         load_env()
         url = os.environ.get("CANVAS_ICS_URL")
@@ -168,7 +168,8 @@ def main() -> None:
                 "events": events,
             },
             indent=2,
-        )
+        ),
+        encoding="utf-8",
     )
 
     untagged = sum(1 for e in events if not e.get("tag"))

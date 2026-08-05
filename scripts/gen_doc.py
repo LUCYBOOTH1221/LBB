@@ -58,7 +58,7 @@ def register(path: Path, title: str, tag: str, when: str) -> None:
     index = {"items": []}
     if INDEX.exists():
         try:
-            index = json.loads(INDEX.read_text())
+            index = json.loads(INDEX.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             pass
     rel = path.relative_to(ROOT).as_posix()
@@ -75,7 +75,7 @@ def register(path: Path, title: str, tag: str, when: str) -> None:
         },
     )
     INDEX.parent.mkdir(parents=True, exist_ok=True)
-    INDEX.write_text(json.dumps({"items": items}, indent=2))
+    INDEX.write_text(json.dumps({"items": items}, indent=2), encoding="utf-8")
 
 
 def main() -> None:
@@ -120,7 +120,7 @@ def main() -> None:
         sys.exit(f"{out.relative_to(ROOT)} already exists; pick another title or delete it.")
 
     OUTDIR.mkdir(parents=True, exist_ok=True)
-    out.write_text(render(src.read_text(), values))
+    out.write_text(render(src.read_text(encoding="utf-8"), values), encoding="utf-8")
     register(out, args.title, args.klass, today)
 
     print(f"Created {out.relative_to(ROOT)}")

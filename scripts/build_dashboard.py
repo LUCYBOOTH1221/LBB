@@ -35,7 +35,7 @@ def read_json(name: str) -> dict:
     if not path.exists():
         return {}
     try:
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         print(f"  warning: {name} is not valid JSON ({exc}); treating as empty")
         return {}
@@ -44,7 +44,7 @@ def read_json(name: str) -> dict:
 def read_config() -> dict:
     import yaml
 
-    return yaml.safe_load((ROOT / "config.yaml").read_text()) or {}
+    return yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8")) or {}
 
 
 def e(value) -> str:
@@ -1124,7 +1124,7 @@ def build() -> str:
 def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     page = build()
-    OUT.write_text(page)
+    OUT.write_text(page, encoding="utf-8")
     print(f"Wrote {OUT.relative_to(ROOT)}  ({len(page):,} bytes)")
 
 
